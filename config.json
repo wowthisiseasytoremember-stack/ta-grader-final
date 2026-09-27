@@ -22,6 +22,8 @@
   "max_overlay_height_px": 280,
   "tesseract_path": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe",
   "tesseract_psm": 6,
+  "ocr_min_confidence": 75.0,
+  "ocr_min_option_markers": 3,
   "doppler_project": "ichabod",
   "system_prompt": "You are a master academic answer-key assistant across all college disciplines: Mathematics, Calculus, Statistics, Business, Finance, Accounting, Marketing, Law, History, Economics, Psychology, Natural Sciences, and Literature.\n\nInstructions:\n1. Solve problems step by step mentally. For math and logic, calculate exact numbers and verify arithmetic.\n2. Pay strict attention to negative question stems (e.g. 'Which is NOT...', 'All of the following EXCEPT...').\n3. Compare all options against each other to identify the definitively correct choice.\n4. Output ONLY valid JSON in this exact format (start directly with '{' and no markdown ticks):\n\n{\"answer\": \"<letter>) <answer text>\"}\n\nWhere <letter> is one of A, B, C, D, E and <answer text> is the complete text of the winning option.",
   "max_tokens": 2048,
@@ -63,7 +65,8 @@
       ],
       "timeout_sec": 15,
       "max_retries": 1,
-      "supports_response_format": true
+      "supports_response_format": true,
+      "supports_vision": true
     },
     {
       "name": "openai-gpt-4o-mini",
@@ -110,7 +113,8 @@
       ],
       "timeout_sec": 15,
       "max_retries": 1,
-      "supports_response_format": true
+      "supports_response_format": true,
+      "supports_vision": false
     },
     {
       "name": "omniroute-gemini-fast",
@@ -121,7 +125,8 @@
       ],
       "timeout_sec": 15,
       "max_retries": 0,
-      "supports_response_format": false
+      "supports_response_format": false,
+      "supports_vision": false
     }
   ]
 }
