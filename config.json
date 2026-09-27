@@ -22,6 +22,32 @@
   "temperature": 0.2,
   "endpoints": [
     {
+      "name": "yolo-auto-flash",
+      "url": "https://yolo-auto.com/v1/chat/completions",
+      "model": "qwen3.8-flash",
+      "key_env": [
+        "YOLO_AUTO_API_KEY",
+        "YOLO_API_KEY"
+      ],
+      "timeout_sec": 10,
+      "max_retries": 1,
+      "supports_response_format": false,
+      "supports_vision": false
+    },
+    {
+      "name": "yolo-auto-small",
+      "url": "https://yolo-auto.com/v1/chat/completions",
+      "model": "yolo-small",
+      "key_env": [
+        "YOLO_AUTO_API_KEY",
+        "YOLO_API_KEY"
+      ],
+      "timeout_sec": 10,
+      "max_retries": 1,
+      "supports_response_format": false,
+      "supports_vision": false
+    },
+    {
       "name": "gemini-flash",
       "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
       "model": "gemini-2.5-flash",
@@ -79,32 +105,6 @@
       "timeout_sec": 15,
       "max_retries": 1,
       "supports_response_format": true
-    },
-    {
-      "name": "yolo-auto-flash",
-      "url": "https://yolo-auto.com/v1/chat/completions",
-      "model": "qwen3.8-flash",
-      "key_env": [
-        "YOLO_AUTO_API_KEY",
-        "YOLO_API_KEY"
-      ],
-      "timeout_sec": 10,
-      "max_retries": 1,
-      "supports_response_format": false,
-      "supports_vision": false
-    },
-    {
-      "name": "yolo-auto-small",
-      "url": "https://yolo-auto.com/v1/chat/completions",
-      "model": "yolo-small",
-      "key_env": [
-        "YOLO_AUTO_API_KEY",
-        "YOLO_API_KEY"
-      ],
-      "timeout_sec": 10,
-      "max_retries": 1,
-      "supports_response_format": false,
-      "supports_vision": false
     },
     {
       "name": "omniroute-gemini-fast",
