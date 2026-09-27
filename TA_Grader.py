@@ -122,6 +122,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "fixed_ocr_region": None,
     "hotkey_ocr": "ctrl+shift+z",
     "hotkey_reselect": "ctrl+alt+z",
+    "hotkey_scroll": "alt+shift+z",
     "hotkey_clip": "win+shift+c",
     "hotkey_clear": "win+shift+v",
     "hotkey_reshow": "win+shift+x",
@@ -482,6 +483,83 @@ def capture_region_base64(x: int, y: int, w: int, h: int) -> str:
     buf = io.BytesIO()
     img.save(buf, format="JPEG", quality=85)
     return base64.b64encode(buf.getvalue()).decode("utf-8")
+
+
+def capture_scroll_region(x: int, y: int, w: int, h: int, scroll_pause: float = 0.5) -> tuple[Optional[str], Optional[str]]:
+    """
+    Capture a tall region by taking multiple screenshots while user scrolls down.
+    User presses Enter to capture each segment, Escape to finish.
+    Returns (combined_base64, combined_ocr_text) or (None, None) if cancelled.
+    """
+    import keyboard
+    
+    print("Scroll Capture Mode: Press ENTER to capture each segment, ESC to finish and process")
+    
+    segments = []
+    ocr_segments = []
+    
+    try:
+        while True:
+            # Wait for Enter or Escape
+            event = keyboard.read_event(suppress=True)
+            if event.event_type == keyboard.KEY_DOWN:
+                if event.name == "enter":
+                    # Capture current view
+                    img_b64 = capture_region_base64(x, y, w, h)
+                    segments.append(img_b64)
+                    
+                    # OCR this segment
+                    txt = ocr_region(x, y, w, h)
+                    if txt.strip():
+                        ocr_segments.append(txt.strip())
+                    
+                    print(f"  Captured segment {len(segments)} ({len(txt)} chars)")
+                    time.sleep(scroll_pause)
+                    
+                elif event.name == "esc":
+                    print("  Finished scroll capture")
+                    break
+    except Exception as e:
+        log(f"Scroll capture error: {e}")
+        return None, None
+    
+    if not segments:
+        return None, None
+    
+    # Combine images vertically
+    try:
+        images = []
+        for b64 in segments:
+            img_data = base64.b64decode(b64)
+            img = Image.open(io.BytesIO(img_data)).convert("RGB")
+            images.append(img)
+        
+        # Stitch vertically
+        total_h = sum(img.height for img in images)
+        max_w = max(img.width for img in images)
+        combined = Image.new("RGB", (max_w, total_h), "white")
+        
+        y_offset = 0
+        for img in images:
+            combined.paste(img, (0, y_offset))
+            y_offset += img.height
+        
+        # Save combined as base64
+        buf = io.BytesIO()
+        combined.save(buf, format="JPEG", quality=85)
+        combined_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+        
+        # Combine OCR text
+        combined_ocr = "\n\n".join(ocr_segments)
+        combined_ocr = clean_question_text(combined_ocr)
+        
+        log(f"Scroll capture: {len(segments)} segments, {combined.width}x{combined.height}px, {len(combined_ocr)} chars OCR")
+        return combined_b64, combined_ocr
+        
+    except Exception as e:
+        log(f"Failed to stitch scroll capture: {e}")
+        # Fallback: return first segment only
+        return segments[0], ocr_segments[0] if ocr_segments else ""
 
 
 # ---------------------------------------------------------------------------
@@ -1145,13 +1223,15 @@ class App:
 
             if cfg.get("hotkey_reselect"):
                 keyboard.add_hotkey(cfg["hotkey_reselect"], lambda: self._events.put("reselect"), suppress=False)
+            if cfg.get("hotkey_scroll"):
+                keyboard.add_hotkey(cfg["hotkey_scroll"], lambda: self._events.put("scroll"), suppress=False)
             keyboard.add_hotkey(cfg["hotkey_clip"], lambda: self._events.put("clip"), suppress=False)
             keyboard.add_hotkey(cfg["hotkey_clear"], lambda: self._events.put("clear"), suppress=False)
             if cfg.get("hotkey_reshow"):
                 keyboard.add_hotkey(cfg["hotkey_reshow"], lambda: self._events.put("reshow"), suppress=False)
             log(
                 f"hotkeys: {cfg['hotkey_ocr']}, {cfg.get('hotkey_reselect', '(none)')}, "
-                f"{cfg['hotkey_clip']}, {cfg['hotkey_clear']}, {cfg.get('hotkey_reshow', '(none)')}"
+                f"{cfg['hotkey_clip']}, {cfg['hotkey_clear']}, {cfg.get('hotkey_reshow', '(none)')}, {cfg.get('hotkey_scroll', '(none)')}"
             )
         except Exception as e:
             log(f"hotkey registration failed: {e}")
@@ -1176,6 +1256,8 @@ class App:
                     self._do_reselect()
                 elif ev == "clip":
                     self._do_clip()
+                elif ev == "scroll":
+                    self._do_scroll()
                 elif ev == "clear":
                     self.overlays.clear_all()
                 elif ev == "reshow":
@@ -1211,6 +1293,41 @@ class App:
 
         x, y, w, h = box
         self._process_region(x, y, w, h)
+
+    def _do_scroll(self) -> None:
+        """Scroll capture: user scrolls and presses Enter to capture segments, ESC to finish."""
+        if not self.fixed_region:
+            self._do_reselect()
+            return
+        x, y, w, h = self.fixed_region
+        self.overlays.clear_all()
+        anchor_x, anchor_y = x + w, y
+
+        placeholder = self.overlays.show("Scroll Capture: Press ENTER to capture each segment, ESC to finish", anchor_x, anchor_y, fg="#ffd080")
+        self.status.set_dot("#ffaa00")
+
+        def worker():
+            combined_b64, combined_text = capture_scroll_region(x, y, w, h)
+            if not combined_b64:
+                self.root.after(0, lambda: self.overlays.update(placeholder, "Scroll capture cancelled"))
+                self.root.after(0, lambda: self.status.set_dot("#c04040"))
+                return
+
+            # Clean up the combined text
+            if combined_text:
+                combined_text = clean_question_text(combined_text)
+
+            self.root.after(0, lambda: self.overlays.update(placeholder, "Thinking…"))
+            self.root.after(0, lambda: self.status.set_dot("#808080"))
+
+            # Run LLM with combined image and text
+            threading.Thread(
+                target=self._run_llm,
+                args=(combined_text, placeholder, anchor_x, anchor_y, combined_b64),
+                daemon=True,
+            ).start()
+
+        threading.Thread(target=worker, daemon=True).start()
 
     def _process_region(self, x: int, y: int, w: int, h: int) -> None:
         cfg = self.cfg
