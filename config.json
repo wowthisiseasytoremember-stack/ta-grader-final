@@ -5,9 +5,11 @@
     1031,
     1109
   ],
+  "scroll_region": null,
   "hotkey_ocr": "menu",
   "hotkey_reselect": "alt+q",
   "hotkey_scroll": "alt+shift+z",
+  "hotkey_set_scroll": "alt+shift+x",
   "hotkey_clip": "alt+c",
   "hotkey_clear": "alt+v",
   "hotkey_reshow": "alt+x",

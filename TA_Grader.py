@@ -120,9 +120,11 @@ Where <letter> is one of A, B, C, D, E and <answer text> is the complete text of
 
 DEFAULT_CONFIG: dict[str, Any] = {
     "fixed_ocr_region": None,
+    "scroll_region": None,
     "hotkey_ocr": "ctrl+shift+z",
     "hotkey_reselect": "ctrl+alt+z",
     "hotkey_scroll": "alt+shift+z",
+    "hotkey_set_scroll": "alt+shift+x",
     "hotkey_clip": "win+shift+c",
     "hotkey_clear": "win+shift+v",
     "hotkey_reshow": "win+shift+x",
@@ -1155,6 +1157,9 @@ class App:
         self.fixed_region: Optional[tuple[int, int, int, int]] = (
             tuple(self.cfg["fixed_ocr_region"]) if self.cfg.get("fixed_ocr_region") else None
         )
+        self.scroll_region: Optional[tuple[int, int, int, int]] = (
+            tuple(self.cfg["scroll_region"]) if self.cfg.get("scroll_region") else None
+        )
 
         self.llm = LLMClient()
         self.selector = RegionSelector(self.root)
@@ -1225,13 +1230,15 @@ class App:
                 keyboard.add_hotkey(cfg["hotkey_reselect"], lambda: self._events.put("reselect"), suppress=False)
             if cfg.get("hotkey_scroll"):
                 keyboard.add_hotkey(cfg["hotkey_scroll"], lambda: self._events.put("scroll"), suppress=False)
+            if cfg.get("hotkey_set_scroll"):
+                keyboard.add_hotkey(cfg["hotkey_set_scroll"], lambda: self._events.put("set_scroll"), suppress=False)
             keyboard.add_hotkey(cfg["hotkey_clip"], lambda: self._events.put("clip"), suppress=False)
             keyboard.add_hotkey(cfg["hotkey_clear"], lambda: self._events.put("clear"), suppress=False)
             if cfg.get("hotkey_reshow"):
                 keyboard.add_hotkey(cfg["hotkey_reshow"], lambda: self._events.put("reshow"), suppress=False)
             log(
                 f"hotkeys: {cfg['hotkey_ocr']}, {cfg.get('hotkey_reselect', '(none)')}, "
-                f"{cfg['hotkey_clip']}, {cfg['hotkey_clear']}, {cfg.get('hotkey_reshow', '(none)')}, {cfg.get('hotkey_scroll', '(none)')}"
+                f"{cfg['hotkey_clip']}, {cfg['hotkey_clear']}, {cfg.get('hotkey_reshow', '(none)')}, {cfg.get('hotkey_scroll', '(none)')}, {cfg.get('hotkey_set_scroll', '(none)')}"
             )
         except Exception as e:
             log(f"hotkey registration failed: {e}")
@@ -1258,6 +1265,8 @@ class App:
                     self._do_clip()
                 elif ev == "scroll":
                     self._do_scroll()
+                elif ev == "set_scroll":
+                    self._do_set_scroll()
                 elif ev == "clear":
                     self.overlays.clear_all()
                 elif ev == "reshow":
@@ -1294,12 +1303,30 @@ class App:
         x, y, w, h = box
         self._process_region(x, y, w, h)
 
+    def _do_set_scroll(self) -> None:
+        """Define a dedicated scroll region (left panel) for tall questions."""
+        self.overlays.clear_all()
+        box = self.selector.select()
+        if not box:
+            return
+        self.scroll_region = box
+        try:
+            self.cfg["scroll_region"] = list(box)
+            CONFIG_PATH.write_text(json.dumps(self.cfg, indent=2), encoding="utf-8")
+            log(f"Saved scroll region {box} to config.json")
+            self.overlays.show(f"Scroll region set: {box}\n\nPress {self.cfg.get('hotkey_scroll', 'alt+shift+z')} to capture.", 
+                               box[0] + box[2], box[1], fg="#80ff80")
+        except Exception as e:
+            log(f"Failed to save scroll region to config.json: {e}")
+
     def _do_scroll(self) -> None:
         """Scroll capture: user scrolls and presses Enter to capture segments, ESC to finish."""
-        if not self.fixed_region:
+        # Use dedicated scroll_region if set, otherwise fall back to fixed_region
+        region = self.scroll_region or self.fixed_region
+        if not region:
             self._do_reselect()
             return
-        x, y, w, h = self.fixed_region
+        x, y, w, h = region
         self.overlays.clear_all()
         anchor_x, anchor_y = x + w, y
 
