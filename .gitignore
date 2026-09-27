@@ -2,3 +2,6 @@ __pycache__/
 *.pyc
 *.log
 .env
+.env.*
+!.env.example
+keys.cmd
