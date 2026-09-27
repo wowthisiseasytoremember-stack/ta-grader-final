@@ -121,10 +121,13 @@ Where <letter> is one of A, B, C, D, E and <answer text> is the complete text of
 DEFAULT_CONFIG: dict[str, Any] = {
     "fixed_ocr_region": None,
     "scroll_region": None,
+    "auto_scroll_region": None,
     "hotkey_ocr": "ctrl+shift+z",
     "hotkey_reselect": "ctrl+alt+z",
     "hotkey_scroll": "alt+shift+z",
     "hotkey_set_scroll": "alt+shift+x",
+    "hotkey_auto_scroll": "alt+shift+a",
+    "hotkey_set_auto_scroll": "alt+shift+s",
     "hotkey_clip": "win+shift+c",
     "hotkey_clear": "win+shift+v",
     "hotkey_reshow": "win+shift+x",
@@ -1160,6 +1163,9 @@ class App:
         self.scroll_region: Optional[tuple[int, int, int, int]] = (
             tuple(self.cfg["scroll_region"]) if self.cfg.get("scroll_region") else None
         )
+        self.auto_scroll_region: Optional[tuple[int, int, int, int]] = (
+            tuple(self.cfg["auto_scroll_region"]) if self.cfg.get("auto_scroll_region") else None
+        )
 
         self.llm = LLMClient()
         self.selector = RegionSelector(self.root)
@@ -1232,13 +1238,19 @@ class App:
                 keyboard.add_hotkey(cfg["hotkey_scroll"], lambda: self._events.put("scroll"), suppress=False)
             if cfg.get("hotkey_set_scroll"):
                 keyboard.add_hotkey(cfg["hotkey_set_scroll"], lambda: self._events.put("set_scroll"), suppress=False)
+            if cfg.get("hotkey_auto_scroll"):
+                keyboard.add_hotkey(cfg["hotkey_auto_scroll"], lambda: self._events.put("auto_scroll"), suppress=False)
+            if cfg.get("hotkey_set_auto_scroll"):
+                keyboard.add_hotkey(cfg["hotkey_set_auto_scroll"], lambda: self._events.put("set_auto_scroll"), suppress=False)
             keyboard.add_hotkey(cfg["hotkey_clip"], lambda: self._events.put("clip"), suppress=False)
             keyboard.add_hotkey(cfg["hotkey_clear"], lambda: self._events.put("clear"), suppress=False)
             if cfg.get("hotkey_reshow"):
                 keyboard.add_hotkey(cfg["hotkey_reshow"], lambda: self._events.put("reshow"), suppress=False)
             log(
                 f"hotkeys: {cfg['hotkey_ocr']}, {cfg.get('hotkey_reselect', '(none)')}, "
-                f"{cfg['hotkey_clip']}, {cfg['hotkey_clear']}, {cfg.get('hotkey_reshow', '(none)')}, {cfg.get('hotkey_scroll', '(none)')}, {cfg.get('hotkey_set_scroll', '(none)')}"
+                f"{cfg['hotkey_clip']}, {cfg['hotkey_clear']}, {cfg.get('hotkey_reshow', '(none)')}, "
+                f"{cfg.get('hotkey_scroll', '(none)')}, {cfg.get('hotkey_set_scroll', '(none)')}, "
+                f"{cfg.get('hotkey_auto_scroll', '(none)')}, {cfg.get('hotkey_set_auto_scroll', '(none)')}"
             )
         except Exception as e:
             log(f"hotkey registration failed: {e}")
@@ -1267,6 +1279,10 @@ class App:
                     self._do_scroll()
                 elif ev == "set_scroll":
                     self._do_set_scroll()
+                elif ev == "auto_scroll":
+                    self._do_auto_scroll()
+                elif ev == "set_auto_scroll":
+                    self._do_set_auto_scroll()
                 elif ev == "clear":
                     self.overlays.clear_all()
                 elif ev == "reshow":
@@ -1353,6 +1369,145 @@ class App:
                 args=(combined_text, placeholder, anchor_x, anchor_y, combined_b64),
                 daemon=True,
             ).start()
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _do_set_auto_scroll(self) -> None:
+        """Define X-axis bounds for auto-scroll capture (left panel vertical slice)."""
+        self.overlays.clear_all()
+        box = self.selector.select()
+        if not box:
+            return
+        # Only use X bounds (left, right), ignore Y - we'll capture full height
+        x, y, w, h = box
+        # Store as (left, top, width, height) but we'll use left/right for X bounds
+        # and start from top of screen for Y
+        self.auto_scroll_region = (x, 0, w, self.root.winfo_screenheight())
+        try:
+            # Save just the X bounds (left, width) and mark as auto-scroll
+            self.cfg["auto_scroll_region"] = [x, 0, w, self.root.winfo_screenheight()]
+            CONFIG_PATH.write_text(json.dumps(self.cfg, indent=2), encoding="utf-8")
+            log(f"Saved auto-scroll X bounds: left={x}, right={x+w}")
+            self.overlays.show(f"Auto-scroll X bounds set: left={x}, right={x+w}\n\nPress {self.cfg.get('hotkey_auto_scroll', 'alt+shift+a')} to auto-capture full height.", 
+                               x + w, 50, fg="#80ff80")
+        except Exception as e:
+            log(f"Failed to save auto-scroll region to config.json: {e}")
+
+    def _do_auto_scroll(self) -> None:
+        """Auto-scroll capture: programmatically scrolls down (Page Down) and captures each screenful until bottom."""
+        if not self.auto_scroll_region:
+            self._do_set_auto_scroll()
+            return
+        
+        x, y, w, h = self.auto_scroll_region
+        # Use full screen height
+        screen_h = self.root.winfo_screenheight()
+        
+        self.overlays.clear_all()
+        anchor_x, anchor_y = x + w, 50
+
+        placeholder = self.overlays.show("Auto-Scroll Capture: Press ESC to cancel...", anchor_x, anchor_y, fg="#ffaa00")
+        self.status.set_dot("#ffaa00")
+
+        def worker():
+            import keyboard
+            
+            segments = []
+            ocr_segments = []
+            last_img_hash = None
+            no_change_count = 0
+            max_no_change = 3  # Stop after 3 identical captures
+            max_segments = 50  # Safety limit
+            
+            try:
+                # Initial capture
+                for i in range(max_segments):
+                    # Check for ESC to cancel
+                    if keyboard.is_pressed("esc"):
+                        log("Auto-scroll cancelled by user")
+                        break
+                    
+                    # Capture current viewport
+                    img_b64 = capture_region_base64(x, 0, w, screen_h)
+                    segments.append(img_b64)
+                    
+                    # OCR this segment
+                    txt = ocr_region(x, 0, w, screen_h)
+                    if txt.strip():
+                        ocr_segments.append(txt.strip())
+                    
+                    log(f"Auto-scroll: captured segment {len(segments)} ({len(txt)} chars)")
+                    
+                    # Check if content changed (simple hash comparison)
+                    import hashlib
+                    img_hash = hashlib.md5(base64.b64decode(img_b64)).hexdigest()
+                    if img_hash == last_img_hash:
+                        no_change_count += 1
+                        if no_change_count >= max_no_change:
+                            log(f"Auto-scroll: reached bottom (no change for {max_no_change} captures)")
+                            break
+                    else:
+                        no_change_count = 0
+                    last_img_hash = img_hash
+                    
+                    # Scroll down (Page Down key)
+                    keyboard.send("page down")
+                    time.sleep(0.6)  # Wait for scroll animation and render
+                    
+                if not segments:
+                    self.root.after(0, lambda: self.overlays.update(placeholder, "Auto-scroll capture cancelled"))
+                    self.root.after(0, lambda: self.status.set_dot("#c04040"))
+                    return
+
+                # Stitch images vertically (same as capture_scroll_region)
+                try:
+                    images = []
+                    for b64 in segments:
+                        img_data = base64.b64decode(b64)
+                        img = Image.open(io.BytesIO(img_data)).convert("RGB")
+                        images.append(img)
+                    
+                    total_h = sum(img.height for img in images)
+                    max_w = max(img.width for img in images)
+                    combined = Image.new("RGB", (max_w, total_h), "white")
+                    
+                    y_offset = 0
+                    for img in images:
+                        combined.paste(img, (0, y_offset))
+                        y_offset += img.height
+                    
+                    buf = io.BytesIO()
+                    combined.save(buf, format="JPEG", quality=85)
+                    combined_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+                    
+                    combined_ocr = "\n\n".join(ocr_segments)
+                    combined_ocr = clean_question_text(combined_ocr)
+                    
+                    log(f"Auto-scroll: {len(segments)} segments, {combined.width}x{combined.height}px, {len(combined_ocr)} chars OCR")
+                    
+                except Exception as e:
+                    log(f"Failed to stitch auto-scroll capture: {e}")
+                    combined_b64 = segments[0]
+                    combined_ocr = ocr_segments[0] if ocr_segments else ""
+
+                # Clean up
+                if combined_ocr:
+                    combined_ocr = clean_question_text(combined_ocr)
+
+                self.root.after(0, lambda: self.overlays.update(placeholder, "Thinking…"))
+                self.root.after(0, lambda: self.status.set_dot("#808080"))
+
+                # Run LLM
+                threading.Thread(
+                    target=self._run_llm,
+                    args=(combined_ocr, placeholder, anchor_x, anchor_y, combined_b64),
+                    daemon=True,
+                ).start()
+
+            except Exception as e:
+                log(f"Auto-scroll error: {e}")
+                self.root.after(0, lambda: self.overlays.update(placeholder, f"Auto-scroll failed: {e}"))
+                self.root.after(0, lambda: self.status.set_dot("#c04040"))
 
         threading.Thread(target=worker, daemon=True).start()
 
