@@ -47,7 +47,7 @@ if env_path.exists():
 import requests
 import keyboard
 import pytesseract
-from PIL import ImageGrab
+from PIL import Image, ImageGrab
 import tkinter as tk
 from tkinter import messagebox
 
@@ -131,6 +131,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "max_overlay_height_px": 280,
     "tesseract_path": r"C:\Program Files\Tesseract-OCR\tesseract.exe",
     "tesseract_psm": 6,
+    "ocr_min_confidence": 75.0,
+    "ocr_min_option_markers": 3,
     "doppler_project": "ichabod",
     "system_prompt": PERSONA,
     "max_tokens": 1000,
@@ -164,6 +166,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "timeout_sec": 15,
             "max_retries": 1,
             "supports_response_format": True,
+            "supports_vision": True,
         },
         {
             "name": "openai-gpt-4o-mini",
@@ -203,6 +206,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "timeout_sec": 15,
             "max_retries": 1,
             "supports_response_format": True,
+            "supports_vision": False,
         },
         {
             "name": "omniroute-gemini-fast",
@@ -212,6 +216,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "timeout_sec": 15,
             "max_retries": 0,
             "supports_response_format": False,
+            "supports_vision": False,
         },
     ],
 }
@@ -297,46 +302,87 @@ def doppler_get(project: str, key_name: str) -> Optional[str]:
     return None
 
 
+_SECRET_CACHE: dict[str, Optional[str]] = {}
+
+
 def get_api_key(cfg: dict[str, Any], key_name: str) -> Optional[str]:
-    """Fetch key_name from Doppler (if configured), then env var."""
+    """Fetch and cache a secret without ever storing it inside cfg."""
+    if key_name in _SECRET_CACHE:
+        return _SECRET_CACHE[key_name]
+
     project = (cfg.get("doppler_project") or "").strip()
     v = doppler_get(project, key_name)
-    if v:
-        return v
-    v = os.environ.get(key_name, "")
-    return v.strip() if v and v.strip() else None
+    if not v:
+        env_v = os.environ.get(key_name, "")
+        v = env_v.strip() if env_v and env_v.strip() else None
+
+    _SECRET_CACHE[key_name] = v
+    return v
 
 
-def endpoint_api_key(cfg: dict[str, Any], ep: dict[str, Any]) -> Optional[str]:
-    """Return the first working API key for this endpoint, or None."""
-    key_envs = ep.get("key_env")
-    if not key_envs:
-        return None
+def endpoint_api_keys(cfg: dict[str, Any], ep: dict[str, Any]) -> list[str]:
+    """Return all configured, available, de-duplicated keys for an endpoint."""
+    key_envs = ep.get("key_env") or []
     if isinstance(key_envs, str):
         key_envs = [key_envs]
-    for k in key_envs:
-        v = get_api_key(cfg, k)
-        if v:
-            return v
-    return None
+
+    keys: list[str] = []
+    seen: set[str] = set()
+    for key_name in key_envs:
+        value = get_api_key(cfg, key_name)
+        if value and value not in seen:
+            keys.append(value)
+            seen.add(value)
+    return keys
 
 
 def verify_all_keys(cfg: dict[str, Any]) -> None:
-    """Fail-fast: ensure at least one endpoint has a working key.
-    Caches the resolved key per endpoint in ep['_verified_key']."""
+    """Fail fast if no endpoint has a key, without mutating config with secrets."""
     endpoints = cfg.get("endpoints", [])
     working = 0
     errors: list[str] = []
     for ep in endpoints:
-        key = endpoint_api_key(cfg, ep)
-        if key:
-            ep["_verified_key"] = key
+        keys = endpoint_api_keys(cfg, ep)
+        if keys:
             working += 1
-            log(f"key OK for '{ep.get('name', '?')}' (tried {ep.get('key_env')})")
+            log(
+                f"key OK for '{ep.get('name', '?')}' "
+                f"({len(keys)} available; names={ep.get('key_env')})"
+            )
         else:
             errors.append(f"  '{ep.get('name', '?')}': no key (tried {ep.get('key_env')})")
     if working == 0:
         raise RuntimeError("No endpoints have working API keys:\n" + "\n".join(errors))
+
+
+def endpoint_supports_vision(ep: dict[str, Any]) -> bool:
+    """Use explicit capability metadata first; conservative auto-detection only as fallback."""
+    explicit = ep.get("supports_vision")
+    if explicit is not None:
+        return bool(explicit)
+    url = str(ep.get("url", "")).lower()
+    model = str(ep.get("model", "")).lower()
+    return (
+        "generativelanguage.googleapis.com" in url
+        or "gpt-4o" in model
+        or "claude" in model
+    )
+
+
+def config_for_disk(cfg: dict[str, Any]) -> dict[str, Any]:
+    """Strip runtime-only fields recursively before persisting config."""
+    def clean(value: Any) -> Any:
+        if isinstance(value, dict):
+            return {
+                k: clean(v)
+                for k, v in value.items()
+                if not str(k).startswith("_")
+            }
+        if isinstance(value, list):
+            return [clean(v) for v in value]
+        return value
+
+    return clean(cfg)
 
 
 # ---------------------------------------------------------------------------
@@ -460,28 +506,101 @@ def clean_question_text(text: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# OCR — thread-safe
+# OCR / capture — one screen grab shared by text and vision paths
 # ---------------------------------------------------------------------------
 
-def ocr_region(x: int, y: int, w: int, h: int, psm: int = 6) -> str:
-    """OCR a screen region. Falls back from psm 6 to psm 3 on empty result."""
-    img = ImageGrab.grab(bbox=(x, y, x + w, y + h)).convert("L")
-    txt = pytesseract.image_to_string(img, config=f"--psm {psm}").strip()
-    # Strip \r characters that Windows Tesseract adds to every line
-    txt = txt.replace("\r", "")
-    if not txt and psm == 6:
-        txt = pytesseract.image_to_string(img, config="--psm 3").strip().replace("\r", "")
-        if txt:
-            log(f"OCR: psm6 empty; psm3 returned {len(txt)} chars")
-    return txt
+def capture_region_image(x: int, y: int, w: int, h: int) -> Image.Image:
+    """Capture a region once so OCR and vision inspect the exact same frame."""
+    return ImageGrab.grab(bbox=(x, y, x + w, y + h)).convert("RGB")
 
 
-def capture_region_base64(x: int, y: int, w: int, h: int) -> str:
-    """Capture screen region and return JPEG image as base64 string."""
-    img = ImageGrab.grab(bbox=(x, y, x + w, y + h)).convert("RGB")
+def image_to_base64(img: Image.Image) -> str:
+    """Encode a captured frame for vision-capable endpoints."""
     buf = io.BytesIO()
-    img.save(buf, format="JPEG", quality=85)
+    img.save(buf, format="JPEG", quality=85, optimize=False)
     return base64.b64encode(buf.getvalue()).decode("utf-8")
+
+
+def ocr_image(img: Image.Image, psm: int = 6) -> tuple[str, float]:
+    """OCR one image and return reconstructed text plus mean word confidence.
+
+    Uses image_to_data so confidence comes from the same Tesseract pass; no second
+    OCR pass is needed just to score quality.
+    """
+    def run(psm_value: int) -> tuple[str, float]:
+        data = pytesseract.image_to_data(
+            img.convert("L"),
+            config=f"--psm {psm_value}",
+            output_type=pytesseract.Output.DICT,
+        )
+
+        lines: list[str] = []
+        words: list[str] = []
+        confidences: list[float] = []
+        current_line: Optional[tuple[int, int, int]] = None
+
+        for i, raw_word in enumerate(data.get("text", [])):
+            word = str(raw_word).strip()
+            if not word:
+                continue
+            key = (
+                int(data["block_num"][i]),
+                int(data["par_num"][i]),
+                int(data["line_num"][i]),
+            )
+            if current_line is not None and key != current_line and words:
+                lines.append(" ".join(words))
+                words = []
+            current_line = key
+            words.append(word)
+            try:
+                conf = float(data["conf"][i])
+                if conf >= 0:
+                    confidences.append(conf)
+            except (TypeError, ValueError):
+                pass
+
+        if words:
+            lines.append(" ".join(words))
+
+        text = "\n".join(lines).replace("\r", "").strip()
+        confidence = (
+            sum(confidences) / len(confidences)
+            if confidences
+            else 0.0
+        )
+        return text, confidence
+
+    text, confidence = run(psm)
+    if not text and psm == 6:
+        text, confidence = run(3)
+        if text:
+            log(f"OCR: psm6 empty; psm3 returned {len(text)} chars")
+    return text, confidence
+
+
+def assess_ocr_quality(
+    text: str,
+    confidence: float,
+    cfg: dict[str, Any],
+) -> tuple[bool, str]:
+    """Decide whether OCR is trustworthy enough for text-only fast endpoints."""
+    if not text.strip():
+        return False, "empty OCR"
+
+    min_conf = float(cfg.get("ocr_min_confidence", 75.0))
+    if confidence < min_conf:
+        return False, f"confidence {confidence:.1f} < {min_conf:.1f}"
+
+    markers = {
+        m.group(1).upper()
+        for m in re.finditer(r"(?m)^\s*([A-Ea-e])[\)\.:]\s+", text)
+    }
+    min_markers = int(cfg.get("ocr_min_option_markers", 3))
+    if len(text.splitlines()) >= 4 and len(markers) < min_markers:
+        return False, f"only {len(markers)} option markers found"
+
+    return True, f"confidence {confidence:.1f}, markers={len(markers)}"
 
 
 # ---------------------------------------------------------------------------
@@ -502,12 +621,17 @@ class LLMClient:
         on_chunk: Callable[[str, str], None],
         image_b64: Optional[str] = None,
         on_status: Optional[Callable[[str], None]] = None,
+        prefer_vision: bool = False,
     ) -> tuple[str, str]:
-        """Try each endpoint in order.
-        on_chunk(accumulated_text, endpoint_name) fires as text arrives.
-        Returns (final_text, endpoint_name). Raises RuntimeError if all fail."""
+        """Try endpoints in priority order, preferring vision first when OCR looks weak."""
         last_err: Any = "no endpoints configured"
-        for ep in cfg.get("endpoints", []):
+        endpoints = list(cfg.get("endpoints", []))
+        if prefer_vision and image_b64:
+            endpoints = (
+                [ep for ep in endpoints if endpoint_supports_vision(ep)]
+                + [ep for ep in endpoints if not endpoint_supports_vision(ep)]
+            )
+        for ep in endpoints:
             name = ep.get("name", ep.get("url", "?"))
             if on_status:
                 try:
@@ -515,7 +639,11 @@ class LLMClient:
                 except Exception:
                     pass
             try:
-                result = self._stream_one(text, cfg, ep, on_chunk, image_b64=image_b64)
+                result = self._stream_one(
+                    text, cfg, ep, on_chunk,
+                    image_b64=image_b64,
+                    prefer_vision=prefer_vision,
+                )
                 log(f"LLM: '{name}' returned {len(result)} chars")
                 if not extract_answer(result):
                     raise RuntimeError(f"Model returned invalid/incomplete response: {result!r}")
@@ -535,6 +663,7 @@ class LLMClient:
         ep: dict[str, Any],
         on_chunk: Callable[[str, str], None],
         image_b64: Optional[str] = None,
+        prefer_vision: bool = False,
     ) -> str:
         url = ep["url"]
         model = ep["model"]
@@ -542,34 +671,20 @@ class LLMClient:
         max_retries = ep.get("max_retries", 1)
         is_deepseek = "deepseek" in model.lower() and "api.deepseek.com" in url.lower()
 
-        # Resolve key list once: prefer cached _verified_key from startup check
-        if ep.get("_verified_key"):
-            api_keys: list[str] = [ep["_verified_key"]]
-        else:
-            envs = ep.get("key_env", [])
-            if isinstance(envs, str):
-                envs = [envs]
-            api_keys = [k for env in envs if (k := (get_api_key(cfg, env) or ""))]
-
+        api_keys = endpoint_api_keys(cfg, ep)
         if not api_keys:
             raise RuntimeError(f"no API keys available for '{name}'")
 
-        # Build user message content: vision format if image provided and supported
+        supports_vision = endpoint_supports_vision(ep)
+        prompt_text = "" if (prefer_vision and image_b64 and supports_vision) else text
+
+        # Build user message content: use the image itself when OCR quality was weak
+        # instead of reinforcing a potentially corrupted OCR transcript.
         user_prompt_instruction = (
-            (text + "\n\n" if text else "") +
+            (prompt_text + "\n\n" if prompt_text else "") +
             "Solve the multiple-choice question shown. Remember: Output ONLY the JSON object. "
             "Do not include any introduction or markdown. Start directly with '{'."
         )
-
-        supports_vision = ep.get("supports_vision")
-        if supports_vision is None:
-            # Auto-detect vision support for known providers/models
-            supports_vision = (
-                "generativelanguage.googleapis.com" in url.lower()
-                or "gemini" in model.lower()
-                or "gpt-4o" in model.lower()
-                or "claude" in model.lower()
-            )
 
         if image_b64 and supports_vision:
             user_content: Any = [
@@ -634,11 +749,11 @@ class LLMClient:
                         # or returned as the final result — it would corrupt extraction.
                         accumulated_content = ""
                         seen_content = False
-                        total_deadline = time.time() + max(float(timeout_sec) * 3, 45.0)
+                        total_deadline = time.monotonic() + max(float(timeout_sec) * 2, 20.0)
                         idle_timeout = max(float(timeout_sec), 15.0)
-                        last_activity = time.time()
+                        last_activity = time.monotonic()
                         for raw_line in r.iter_lines():
-                            now = time.time()
+                            now = time.monotonic()
                             if now > total_deadline:
                                 log(f"LLM: '{name}' exceeded total stream deadline, failing over")
                                 raise TimeoutError(f"Stream exceeded total deadline")
@@ -685,20 +800,27 @@ class LLMClient:
                     elif r.status_code >= 500:
                         last_err = f"server error {r.status_code}"
                         log(f"LLM: '{name}' server error {r.status_code}")
+                        if attempt < max_retries:
+                            time.sleep(2 ** attempt)
+                            continue
                         break
                     else:
                         last_err = f"HTTP {r.status_code}: {r.text[:200]}"
+                        break
                 except requests.exceptions.Timeout:
                     last_err = f"timeout (TTFT/chunk delay exceeded {timeout_sec} s)"
-                    log(f"LLM: '{name}' timed out, rotating key")
+                    log(f"LLM: '{name}' timed out")
+                    if attempt < max_retries:
+                        time.sleep(2 ** attempt)
+                        continue
                     break
                 except requests.exceptions.ConnectionError as e:
                     last_err = f"connection error: {str(e)[:120]}"
-                    log(f"LLM: '{name}' connection error, rotating key")
+                    log(f"LLM: '{name}' connection error")
+                    if attempt < max_retries:
+                        time.sleep(2 ** attempt)
+                        continue
                     break
-
-                if attempt < max_retries:
-                    time.sleep(2 ** attempt)
 
         raise RuntimeError(f"all keys failed for '{name}': {last_err}")
 
@@ -1204,7 +1326,10 @@ class App:
         self.fixed_region = box
         try:
             self.cfg["fixed_ocr_region"] = list(box)
-            CONFIG_PATH.write_text(json.dumps(self.cfg, indent=2), encoding="utf-8")
+            CONFIG_PATH.write_text(
+                json.dumps(config_for_disk(self.cfg), indent=2),
+                encoding="utf-8",
+            )
             log(f"Saved fixed OCR region {box} to config.json")
         except Exception as e:
             log(f"Failed to save fixed OCR region to config.json: {e}")
@@ -1217,19 +1342,32 @@ class App:
         self.overlays.clear_all()
         anchor_x, anchor_y = x + w, y
 
+        captured: Optional[Image.Image] = None
         image_b64: Optional[str] = None
         try:
-            image_b64 = capture_region_base64(x, y, w, h)
+            captured = capture_region_image(x, y, w, h)
+            image_b64 = image_to_base64(captured)
         except Exception as e:
             log(f"Image capture warning: {e}")
 
-        # OCR fallback/supplement
         text = ""
-        try:
-            text = ocr_region(x, y, w, h, int(cfg.get("tesseract_psm", 6)))
-            text = clean_question_text(text)
-        except Exception as e:
-            log(f"OCR warning: {e}")
+        ocr_confidence = 0.0
+        if captured is not None:
+            try:
+                text, ocr_confidence = ocr_image(
+                    captured,
+                    int(cfg.get("tesseract_psm", 6)),
+                )
+                text = clean_question_text(text)
+            except Exception as e:
+                log(f"OCR warning: {e}")
+
+        ocr_usable, ocr_reason = assess_ocr_quality(text, ocr_confidence, cfg)
+        prefer_vision = bool(image_b64) and not ocr_usable
+        log(
+            f"OCR quality: usable={ocr_usable} ({ocr_reason}); "
+            f"strategy={'vision-first' if prefer_vision else 'text-first'}"
+        )
 
         if not text.strip() and not image_b64:
             self.overlays.show(
@@ -1242,7 +1380,7 @@ class App:
         self.status.set_dot("#808080")
         threading.Thread(
             target=self._run_llm,
-            args=(text, placeholder, anchor_x, anchor_y, image_b64),
+            args=(text, placeholder, anchor_x, anchor_y, image_b64, prefer_vision),
             daemon=True,
         ).start()
 
@@ -1279,6 +1417,7 @@ class App:
         anchor_x: int,
         anchor_y: int,
         image_b64: Optional[str] = None,
+        prefer_vision: bool = False,
     ) -> None:
         """Background thread. Uses root.after() for all Tk operations."""
         def on_chunk(accumulated: str, _ep: str) -> None:
@@ -1291,14 +1430,23 @@ class App:
 
         try:
             final_raw, endpoint_used = self.llm.stream(
-                text, self.cfg, on_chunk, image_b64=image_b64, on_status=on_status
+                text,
+                self.cfg,
+                on_chunk,
+                image_b64=image_b64,
+                on_status=on_status,
+                prefer_vision=prefer_vision,
             )
             final_answer = extract_answer(final_raw)
             if not final_answer:
                 # Log the full raw response so we can diagnose extraction failures
                 log(f"extract_answer failed. endpoint={endpoint_used!r} raw={final_raw!r}")
                 final_answer = "⚠ No answer found.\n\nTry selecting a larger region or re-copying the text."
-            log(f"Input question ({len(text)} chars, image={'yes' if image_b64 else 'no'}):\n{text}\n--> Answer from '{endpoint_used}': {final_answer}")
+            log(
+                f"Input question ({len(text)} chars, image={'yes' if image_b64 else 'no'}, "
+                f"strategy={'vision-first' if prefer_vision else 'text-first'}):\n"
+                f"{text}\n--> Answer from '{endpoint_used}': {final_answer}"
+            )
             self.overlays.record_last(final_answer, anchor_x, anchor_y, endpoint_used)
             self.root.after(0, lambda a=final_answer: self.overlays.update(placeholder, a))
             self.root.after(0, lambda: self.status.set_dot("#40c040"))
