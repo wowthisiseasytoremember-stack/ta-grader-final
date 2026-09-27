@@ -47,7 +47,7 @@ if env_path.exists():
 import requests
 import keyboard
 import pytesseract
-from PIL import ImageGrab
+from PIL import Image, ImageGrab
 import tkinter as tk
 from tkinter import messagebox
 
@@ -137,6 +137,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "max_overlay_height_px": 280,
     "tesseract_path": r"C:\Program Files\Tesseract-OCR\tesseract.exe",
     "tesseract_psm": 6,
+    "ocr_min_confidence": 75.0,
+    "ocr_min_option_markers": 3,
     "doppler_project": "ichabod",
     "system_prompt": PERSONA,
     "max_tokens": 1000,
@@ -170,6 +172,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "timeout_sec": 15,
             "max_retries": 1,
             "supports_response_format": True,
+            "supports_vision": True,
         },
         {
             "name": "openai-gpt-4o-mini",
@@ -209,6 +212,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "timeout_sec": 15,
             "max_retries": 1,
             "supports_response_format": True,
+            "supports_vision": False,
         },
         {
             "name": "omniroute-gemini-fast",
@@ -218,6 +222,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "timeout_sec": 15,
             "max_retries": 0,
             "supports_response_format": False,
+            "supports_vision": False,
         },
     ],
 }
@@ -303,46 +308,86 @@ def doppler_get(project: str, key_name: str) -> Optional[str]:
     return None
 
 
+_SECRET_CACHE: dict[str, Optional[str]] = {}
+
+
 def get_api_key(cfg: dict[str, Any], key_name: str) -> Optional[str]:
-    """Fetch key_name from Doppler (if configured), then env var."""
-    project = (cfg.get("doppler_project") or "").strip()
-    v = doppler_get(project, key_name)
-    if v:
-        return v
-    v = os.environ.get(key_name, "")
-    return v.strip() if v and v.strip() else None
+    """Fetch and cache a secret without ever storing it inside cfg."""
+    if key_name in _SECRET_CACHE:
+        return _SECRET_CACHE[key_name]
+
+    env_v = os.environ.get(key_name, "")
+    value = env_v.strip() if env_v and env_v.strip() else None
+    if not value:
+        project = (cfg.get("doppler_project") or "").strip()
+        value = doppler_get(project, key_name)
+
+    _SECRET_CACHE[key_name] = value
+    return value
 
 
-def endpoint_api_key(cfg: dict[str, Any], ep: dict[str, Any]) -> Optional[str]:
-    """Return the first working API key for this endpoint, or None."""
-    key_envs = ep.get("key_env")
-    if not key_envs:
-        return None
+def endpoint_api_keys(cfg: dict[str, Any], ep: dict[str, Any]) -> list[str]:
+    """Return all configured, available, de-duplicated keys for an endpoint."""
+    key_envs = ep.get("key_env") or []
     if isinstance(key_envs, str):
         key_envs = [key_envs]
-    for k in key_envs:
-        v = get_api_key(cfg, k)
-        if v:
-            return v
-    return None
+
+    keys: list[str] = []
+    seen: set[str] = set()
+    for key_name in key_envs:
+        value = get_api_key(cfg, key_name)
+        if value and value not in seen:
+            keys.append(value)
+            seen.add(value)
+    return keys
 
 
 def verify_all_keys(cfg: dict[str, Any]) -> None:
-    """Fail-fast: ensure at least one endpoint has a working key.
-    Caches the resolved key per endpoint in ep['_verified_key']."""
+    """Fail fast if no endpoint has a key, without mutating config with secrets."""
     endpoints = cfg.get("endpoints", [])
     working = 0
     errors: list[str] = []
     for ep in endpoints:
-        key = endpoint_api_key(cfg, ep)
-        if key:
-            ep["_verified_key"] = key
+        keys = endpoint_api_keys(cfg, ep)
+        if keys:
             working += 1
-            log(f"key OK for '{ep.get('name', '?')}' (tried {ep.get('key_env')})")
+            log(
+                f"key OK for '{ep.get('name', '?')}' "
+                f"({len(keys)} available; names={ep.get('key_env')})"
+            )
         else:
             errors.append(f"  '{ep.get('name', '?')}': no key (tried {ep.get('key_env')})")
     if working == 0:
         raise RuntimeError("No endpoints have working API keys:\n" + "\n".join(errors))
+
+
+def endpoint_supports_vision(ep: dict[str, Any]) -> bool:
+    explicit = ep.get("supports_vision")
+    if explicit is not None:
+        return bool(explicit)
+    url = str(ep.get("url", "")).lower()
+    model = str(ep.get("model", "")).lower()
+    return (
+        "generativelanguage.googleapis.com" in url
+        or "gpt-4o" in model
+        or "claude" in model
+    )
+
+
+def config_for_disk(cfg: dict[str, Any]) -> dict[str, Any]:
+    """Strip runtime-only fields recursively before persisting config."""
+    def clean(value: Any) -> Any:
+        if isinstance(value, dict):
+            return {
+                k: clean(v)
+                for k, v in value.items()
+                if not str(k).startswith("_")
+            }
+        if isinstance(value, list):
+            return [clean(v) for v in value]
+        return value
+
+    return clean(cfg)
 
 
 # ---------------------------------------------------------------------------
@@ -466,105 +511,164 @@ def clean_question_text(text: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# OCR — thread-safe
+# OCR / capture — one screen grab shared by text and vision paths
 # ---------------------------------------------------------------------------
 
-def ocr_region(x: int, y: int, w: int, h: int, psm: int = 6) -> str:
-    """OCR a screen region. Falls back from psm 6 to psm 3 on empty result."""
-    img = ImageGrab.grab(bbox=(x, y, x + w, y + h)).convert("L")
-    txt = pytesseract.image_to_string(img, config=f"--psm {psm}").strip()
-    # Strip \r characters that Windows Tesseract adds to every line
-    txt = txt.replace("\r", "")
-    if not txt and psm == 6:
-        txt = pytesseract.image_to_string(img, config="--psm 3").strip().replace("\r", "")
-        if txt:
-            log(f"OCR: psm6 empty; psm3 returned {len(txt)} chars")
-    return txt
+def capture_region_image(x: int, y: int, w: int, h: int) -> Image.Image:
+    """Capture a region once so OCR and vision inspect the same frame."""
+    return ImageGrab.grab(bbox=(x, y, x + w, y + h)).convert("RGB")
 
 
-def capture_region_base64(x: int, y: int, w: int, h: int) -> str:
-    """Capture screen region and return JPEG image as base64 string."""
-    img = ImageGrab.grab(bbox=(x, y, x + w, y + h)).convert("RGB")
+def image_to_base64(img: Image.Image) -> str:
+    """Encode a captured frame for a vision-capable endpoint."""
     buf = io.BytesIO()
-    img.save(buf, format="JPEG", quality=85)
+    img.save(buf, format="JPEG", quality=85, optimize=False)
     return base64.b64encode(buf.getvalue()).decode("utf-8")
 
 
-def capture_scroll_region(x: int, y: int, w: int, h: int, scroll_pause: float = 0.5) -> tuple[Optional[str], Optional[str]]:
-    """
-    Capture a tall region by taking multiple screenshots while user scrolls down.
-    User presses Enter to capture each segment, Escape to finish.
-    Returns (combined_base64, combined_ocr_text) or (None, None) if cancelled.
-    """
-    import keyboard
-    
+def ocr_image(img: Image.Image, psm: int = 6) -> tuple[str, float]:
+    """OCR one image and return reconstructed text plus mean word confidence."""
+    def run(psm_value: int) -> tuple[str, float]:
+        data = pytesseract.image_to_data(
+            img.convert("L"),
+            config=f"--psm {psm_value}",
+            output_type=pytesseract.Output.DICT,
+        )
+        lines: list[str] = []
+        words: list[str] = []
+        confidences: list[float] = []
+        current_line: Optional[tuple[int, int, int]] = None
+
+        for i, raw_word in enumerate(data.get("text", [])):
+            word = str(raw_word).strip()
+            if not word:
+                continue
+            key = (
+                int(data["block_num"][i]),
+                int(data["par_num"][i]),
+                int(data["line_num"][i]),
+            )
+            if current_line is not None and key != current_line and words:
+                lines.append(" ".join(words))
+                words = []
+            current_line = key
+            words.append(word)
+            try:
+                conf = float(data["conf"][i])
+                if conf >= 0:
+                    confidences.append(conf)
+            except (TypeError, ValueError):
+                pass
+
+        if words:
+            lines.append(" ".join(words))
+        text = "\n".join(lines).replace("\r", "").strip()
+        confidence = sum(confidences) / len(confidences) if confidences else 0.0
+        return text, confidence
+
+    text, confidence = run(psm)
+    if not text and psm == 6:
+        text, confidence = run(3)
+        if text:
+            log(f"OCR: psm6 empty; psm3 returned {len(text)} chars")
+    return text, confidence
+
+
+def assess_ocr_quality(
+    text: str,
+    confidence: float,
+    cfg: dict[str, Any],
+) -> tuple[bool, str]:
+    """Decide whether OCR is trustworthy enough for text-only fast endpoints."""
+    if not text.strip():
+        return False, "empty OCR"
+
+    min_conf = float(cfg.get("ocr_min_confidence", 75.0))
+    if confidence < min_conf:
+        return False, f"confidence {confidence:.1f} < {min_conf:.1f}"
+
+    markers = {
+        m.group(1).upper()
+        for m in re.finditer(r"(?m)^\s*([A-Ea-e])[\)\.:]\s+", text)
+    }
+    min_markers = int(cfg.get("ocr_min_option_markers", 3))
+    if len(text.splitlines()) >= 4 and len(markers) < min_markers:
+        return False, f"only {len(markers)} option markers found"
+
+    return True, f"confidence {confidence:.1f}, markers={len(markers)}"
+
+
+def stitch_images(images: list[Image.Image]) -> Image.Image:
+    """Stack captured viewports vertically without re-decoding JPEGs."""
+    total_h = sum(img.height for img in images)
+    max_w = max(img.width for img in images)
+    combined = Image.new("RGB", (max_w, total_h), "white")
+    y_offset = 0
+    for img in images:
+        combined.paste(img, (0, y_offset))
+        y_offset += img.height
+    return combined
+
+
+def capture_scroll_region(
+    x: int,
+    y: int,
+    w: int,
+    h: int,
+    scroll_pause: float = 0.5,
+) -> tuple[Optional[str], Optional[str], float]:
+    """Capture manual scroll segments using one grab per segment."""
     print("Scroll Capture Mode: Press ENTER to capture each segment, ESC to finish and process")
-    
-    segments = []
-    ocr_segments = []
-    
+    segments: list[Image.Image] = []
+    ocr_segments: list[str] = []
+    confidences: list[float] = []
+
     try:
         while True:
-            # Wait for Enter or Escape
             event = keyboard.read_event(suppress=True)
-            if event.event_type == keyboard.KEY_DOWN:
-                if event.name == "enter":
-                    # Capture current view
-                    img_b64 = capture_region_base64(x, y, w, h)
-                    segments.append(img_b64)
-                    
-                    # OCR this segment
-                    txt = ocr_region(x, y, w, h)
-                    if txt.strip():
-                        ocr_segments.append(txt.strip())
-                    
-                    print(f"  Captured segment {len(segments)} ({len(txt)} chars)")
-                    time.sleep(scroll_pause)
-                    
-                elif event.name == "esc":
-                    print("  Finished scroll capture")
-                    break
+            if event.event_type != keyboard.KEY_DOWN:
+                continue
+            if event.name == "enter":
+                img = capture_region_image(x, y, w, h)
+                segments.append(img)
+                txt, confidence = ocr_image(img)
+                if txt.strip():
+                    ocr_segments.append(txt.strip())
+                if confidence > 0:
+                    confidences.append(confidence)
+                print(
+                    f"  Captured segment {len(segments)} "
+                    f"({len(txt)} chars, OCR confidence {confidence:.1f})"
+                )
+                time.sleep(scroll_pause)
+            elif event.name == "esc":
+                print("  Finished scroll capture")
+                break
     except Exception as e:
         log(f"Scroll capture error: {e}")
-        return None, None
-    
+        return None, None, 0.0
+
     if not segments:
-        return None, None
-    
-    # Combine images vertically
+        return None, None, 0.0
+
     try:
-        images = []
-        for b64 in segments:
-            img_data = base64.b64decode(b64)
-            img = Image.open(io.BytesIO(img_data)).convert("RGB")
-            images.append(img)
-        
-        # Stitch vertically
-        total_h = sum(img.height for img in images)
-        max_w = max(img.width for img in images)
-        combined = Image.new("RGB", (max_w, total_h), "white")
-        
-        y_offset = 0
-        for img in images:
-            combined.paste(img, (0, y_offset))
-            y_offset += img.height
-        
-        # Save combined as base64
-        buf = io.BytesIO()
-        combined.save(buf, format="JPEG", quality=85)
-        combined_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
-        
-        # Combine OCR text
-        combined_ocr = "\n\n".join(ocr_segments)
-        combined_ocr = clean_question_text(combined_ocr)
-        
-        log(f"Scroll capture: {len(segments)} segments, {combined.width}x{combined.height}px, {len(combined_ocr)} chars OCR")
-        return combined_b64, combined_ocr
-        
+        combined = stitch_images(segments)
+        combined_b64 = image_to_base64(combined)
+        combined_ocr = clean_question_text("\n\n".join(ocr_segments))
+        combined_confidence = (
+            sum(confidences) / len(confidences) if confidences else 0.0
+        )
+        log(
+            f"Scroll capture: {len(segments)} segments, "
+            f"{combined.width}x{combined.height}px, "
+            f"{len(combined_ocr)} chars OCR, confidence={combined_confidence:.1f}"
+        )
+        return combined_b64, combined_ocr, combined_confidence
     except Exception as e:
         log(f"Failed to stitch scroll capture: {e}")
-        # Fallback: return first segment only
-        return segments[0], ocr_segments[0] if ocr_segments else ""
+        first_text = ocr_segments[0] if ocr_segments else ""
+        first_conf = confidences[0] if confidences else 0.0
+        return image_to_base64(segments[0]), first_text, first_conf
 
 
 # ---------------------------------------------------------------------------
@@ -585,12 +689,17 @@ class LLMClient:
         on_chunk: Callable[[str, str], None],
         image_b64: Optional[str] = None,
         on_status: Optional[Callable[[str], None]] = None,
+        prefer_vision: bool = False,
     ) -> tuple[str, str]:
-        """Try each endpoint in order.
-        on_chunk(accumulated_text, endpoint_name) fires as text arrives.
-        Returns (final_text, endpoint_name). Raises RuntimeError if all fail."""
+        """Try configured order, promoting vision endpoints only when OCR is weak."""
         last_err: Any = "no endpoints configured"
-        for ep in cfg.get("endpoints", []):
+        endpoints = list(cfg.get("endpoints", []))
+        if prefer_vision and image_b64:
+            endpoints = (
+                [ep for ep in endpoints if endpoint_supports_vision(ep)]
+                + [ep for ep in endpoints if not endpoint_supports_vision(ep)]
+            )
+        for ep in endpoints:
             name = ep.get("name", ep.get("url", "?"))
             if on_status:
                 try:
@@ -598,7 +707,11 @@ class LLMClient:
                 except Exception:
                     pass
             try:
-                result = self._stream_one(text, cfg, ep, on_chunk, image_b64=image_b64)
+                result = self._stream_one(
+                    text, cfg, ep, on_chunk,
+                    image_b64=image_b64,
+                    prefer_vision=prefer_vision,
+                )
                 log(f"LLM: '{name}' returned {len(result)} chars")
                 if not extract_answer(result):
                     raise RuntimeError(f"Model returned invalid/incomplete response: {result!r}")
@@ -618,6 +731,7 @@ class LLMClient:
         ep: dict[str, Any],
         on_chunk: Callable[[str, str], None],
         image_b64: Optional[str] = None,
+        prefer_vision: bool = False,
     ) -> str:
         url = ep["url"]
         model = ep["model"]
@@ -625,34 +739,17 @@ class LLMClient:
         max_retries = ep.get("max_retries", 1)
         is_deepseek = "deepseek" in model.lower() and "api.deepseek.com" in url.lower()
 
-        # Resolve key list once: prefer cached _verified_key from startup check
-        if ep.get("_verified_key"):
-            api_keys: list[str] = [ep["_verified_key"]]
-        else:
-            envs = ep.get("key_env", [])
-            if isinstance(envs, str):
-                envs = [envs]
-            api_keys = [k for env in envs if (k := (get_api_key(cfg, env) or ""))]
-
+        api_keys = endpoint_api_keys(cfg, ep)
         if not api_keys:
             raise RuntimeError(f"no API keys available for '{name}'")
 
-        # Build user message content: vision format if image provided and supported
+        supports_vision = endpoint_supports_vision(ep)
+        prompt_text = "" if (prefer_vision and image_b64 and supports_vision) else text
         user_prompt_instruction = (
-            (text + "\n\n" if text else "") +
+            (prompt_text + "\n\n" if prompt_text else "") +
             "Solve the multiple-choice question shown. Remember: Output ONLY the JSON object. "
             "Do not include any introduction or markdown. Start directly with '{'."
         )
-
-        supports_vision = ep.get("supports_vision")
-        if supports_vision is None:
-            # Auto-detect vision support for known providers/models
-            supports_vision = (
-                "generativelanguage.googleapis.com" in url.lower()
-                or "gemini" in model.lower()
-                or "gpt-4o" in model.lower()
-                or "claude" in model.lower()
-            )
 
         if image_b64 and supports_vision:
             user_content: Any = [
@@ -717,11 +814,11 @@ class LLMClient:
                         # or returned as the final result — it would corrupt extraction.
                         accumulated_content = ""
                         seen_content = False
-                        total_deadline = time.time() + max(float(timeout_sec) * 3, 45.0)
+                        total_deadline = time.monotonic() + max(float(timeout_sec) * 2, 20.0)
                         idle_timeout = max(float(timeout_sec), 15.0)
-                        last_activity = time.time()
+                        last_activity = time.monotonic()
                         for raw_line in r.iter_lines():
-                            now = time.time()
+                            now = time.monotonic()
                             if now > total_deadline:
                                 log(f"LLM: '{name}' exceeded total stream deadline, failing over")
                                 raise TimeoutError(f"Stream exceeded total deadline")
@@ -768,20 +865,27 @@ class LLMClient:
                     elif r.status_code >= 500:
                         last_err = f"server error {r.status_code}"
                         log(f"LLM: '{name}' server error {r.status_code}")
+                        if attempt < max_retries:
+                            time.sleep(2 ** attempt)
+                            continue
                         break
                     else:
                         last_err = f"HTTP {r.status_code}: {r.text[:200]}"
+                        break
                 except requests.exceptions.Timeout:
                     last_err = f"timeout (TTFT/chunk delay exceeded {timeout_sec} s)"
-                    log(f"LLM: '{name}' timed out, rotating key")
+                    log(f"LLM: '{name}' timed out")
+                    if attempt < max_retries:
+                        time.sleep(2 ** attempt)
+                        continue
                     break
                 except requests.exceptions.ConnectionError as e:
                     last_err = f"connection error: {str(e)[:120]}"
-                    log(f"LLM: '{name}' connection error, rotating key")
+                    log(f"LLM: '{name}' connection error")
+                    if attempt < max_retries:
+                        time.sleep(2 ** attempt)
+                        continue
                     break
-
-                if attempt < max_retries:
-                    time.sleep(2 ** attempt)
 
         raise RuntimeError(f"all keys failed for '{name}': {last_err}")
 
