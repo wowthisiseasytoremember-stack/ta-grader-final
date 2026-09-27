@@ -1244,7 +1244,6 @@ class App:
     """Top-level application class. Creates all components and drives the main loop."""
 
     def __init__(self) -> None:
-        self._mutex = ensure_single_instance()
         enable_dpi_awareness()
 
         # Tk root must exist before any messagebox/Toplevel
@@ -1415,7 +1414,10 @@ class App:
         self.fixed_region = box
         try:
             self.cfg["fixed_ocr_region"] = list(box)
-            CONFIG_PATH.write_text(json.dumps(self.cfg, indent=2), encoding="utf-8")
+            CONFIG_PATH.write_text(
+                json.dumps(config_for_disk(self.cfg), indent=2),
+                encoding="utf-8",
+            )
             log(f"Saved fixed OCR region {box} to config.json")
         except Exception as e:
             log(f"Failed to save fixed OCR region to config.json: {e}")
@@ -1424,7 +1426,7 @@ class App:
         self._process_region(x, y, w, h)
 
     def _do_set_scroll(self) -> None:
-        """Define a dedicated scroll region (left panel) for tall questions."""
+        """Define a dedicated manual-scroll region for tall questions."""
         self.overlays.clear_all()
         box = self.selector.select()
         if not box:
@@ -1432,185 +1434,235 @@ class App:
         self.scroll_region = box
         try:
             self.cfg["scroll_region"] = list(box)
-            CONFIG_PATH.write_text(json.dumps(self.cfg, indent=2), encoding="utf-8")
+            CONFIG_PATH.write_text(
+                json.dumps(config_for_disk(self.cfg), indent=2),
+                encoding="utf-8",
+            )
             log(f"Saved scroll region {box} to config.json")
-            self.overlays.show(f"Scroll region set: {box}\n\nPress {self.cfg.get('hotkey_scroll', 'alt+shift+z')} to capture.", 
-                               box[0] + box[2], box[1], fg="#80ff80")
+            self.overlays.show(
+                f"Scroll region set: {box}\n\n"
+                f"Press {self.cfg.get('hotkey_scroll', 'alt+shift+z')} to capture.",
+                box[0] + box[2],
+                box[1],
+                fg="#80ff80",
+            )
         except Exception as e:
             log(f"Failed to save scroll region to config.json: {e}")
 
     def _do_scroll(self) -> None:
-        """Scroll capture: user scrolls and presses Enter to capture segments, ESC to finish."""
-        # Use dedicated scroll_region if set, otherwise fall back to fixed_region
+        """Manual scroll capture: ENTER each segment, ESC to finish."""
         region = self.scroll_region or self.fixed_region
         if not region:
             self._do_reselect()
             return
+
         x, y, w, h = region
         self.overlays.clear_all()
         anchor_x, anchor_y = x + w, y
-
-        placeholder = self.overlays.show("Scroll Capture: Press ENTER to capture each segment, ESC to finish", anchor_x, anchor_y, fg="#ffd080")
+        placeholder = self.overlays.show(
+            "Scroll Capture: Press ENTER to capture each segment, ESC to finish",
+            anchor_x,
+            anchor_y,
+            fg="#ffd080",
+        )
         self.status.set_dot("#ffaa00")
 
-        def worker():
-            combined_b64, combined_text = capture_scroll_region(x, y, w, h)
+        def worker() -> None:
+            combined_b64, combined_text, combined_confidence = capture_scroll_region(
+                x, y, w, h
+            )
             if not combined_b64:
-                self.root.after(0, lambda: self.overlays.update(placeholder, "Scroll capture cancelled"))
+                self.root.after(
+                    0,
+                    lambda: self.overlays.update(placeholder, "Scroll capture cancelled"),
+                )
                 self.root.after(0, lambda: self.status.set_dot("#c04040"))
                 return
 
-            # Clean up the combined text
-            if combined_text:
-                combined_text = clean_question_text(combined_text)
+            combined_text = clean_question_text(combined_text or "")
+            ocr_usable, ocr_reason = assess_ocr_quality(
+                combined_text,
+                combined_confidence,
+                self.cfg,
+            )
+            prefer_vision = not ocr_usable
+            log(
+                f"Scroll OCR quality: usable={ocr_usable} ({ocr_reason}); "
+                f"strategy={'vision-first' if prefer_vision else 'text-first'}"
+            )
 
             self.root.after(0, lambda: self.overlays.update(placeholder, "Thinking…"))
             self.root.after(0, lambda: self.status.set_dot("#808080"))
-
-            # Run LLM with combined image and text
             threading.Thread(
                 target=self._run_llm,
-                args=(combined_text, placeholder, anchor_x, anchor_y, combined_b64),
+                args=(
+                    combined_text,
+                    placeholder,
+                    anchor_x,
+                    anchor_y,
+                    combined_b64,
+                    prefer_vision,
+                ),
                 daemon=True,
             ).start()
 
         threading.Thread(target=worker, daemon=True).start()
 
     def _do_set_auto_scroll(self) -> None:
-        """Define X-axis bounds for auto-scroll capture (left panel vertical slice)."""
+        """Define X-axis bounds for automatic full-height scroll capture."""
         self.overlays.clear_all()
         box = self.selector.select()
         if not box:
             return
-        # Only use X bounds (left, right), ignore Y - we'll capture full height
-        x, y, w, h = box
-        # Store as (left, top, width, height) but we'll use left/right for X bounds
-        # and start from top of screen for Y
-        self.auto_scroll_region = (x, 0, w, self.root.winfo_screenheight())
+
+        x, _y, w, _h = box
+        region = (x, 0, w, self.root.winfo_screenheight())
+        self.auto_scroll_region = region
         try:
-            # Save just the X bounds (left, width) and mark as auto-scroll
-            self.cfg["auto_scroll_region"] = [x, 0, w, self.root.winfo_screenheight()]
-            CONFIG_PATH.write_text(json.dumps(self.cfg, indent=2), encoding="utf-8")
+            self.cfg["auto_scroll_region"] = list(region)
+            CONFIG_PATH.write_text(
+                json.dumps(config_for_disk(self.cfg), indent=2),
+                encoding="utf-8",
+            )
             log(f"Saved auto-scroll X bounds: left={x}, right={x+w}")
-            self.overlays.show(f"Auto-scroll X bounds set: left={x}, right={x+w}\n\nPress {self.cfg.get('hotkey_auto_scroll', 'alt+shift+a')} to auto-capture full height.", 
-                               x + w, 50, fg="#80ff80")
+            self.overlays.show(
+                f"Auto-scroll X bounds set: left={x}, right={x+w}\n\n"
+                f"Press {self.cfg.get('hotkey_auto_scroll', 'alt+shift+a')} "
+                "to auto-capture full height.",
+                x + w,
+                50,
+                fg="#80ff80",
+            )
         except Exception as e:
             log(f"Failed to save auto-scroll region to config.json: {e}")
 
     def _do_auto_scroll(self) -> None:
-        """Auto-scroll capture: programmatically scrolls down (Page Down) and captures each screenful until bottom."""
+        """Auto-scroll with Page Down until repeated frames indicate the bottom."""
         if not self.auto_scroll_region:
             self._do_set_auto_scroll()
             return
-        
-        x, y, w, h = self.auto_scroll_region
-        # Use full screen height
+
+        x, _y, w, _h = self.auto_scroll_region
         screen_h = self.root.winfo_screenheight()
-        
         self.overlays.clear_all()
         anchor_x, anchor_y = x + w, 50
 
-        placeholder = self.overlays.show("Auto-Scroll Capture: Press ESC to cancel...", anchor_x, anchor_y, fg="#ffaa00")
+        placeholder = self.overlays.show(
+            "Auto-Scroll Capture: Press ESC to cancel...",
+            anchor_x,
+            anchor_y,
+            fg="#ffaa00",
+        )
         self.status.set_dot("#ffaa00")
 
-        def worker():
-            import keyboard
-            
-            segments = []
-            ocr_segments = []
-            last_img_hash = None
+        def worker() -> None:
+            import hashlib
+
+            segments: list[Image.Image] = []
+            ocr_segments: list[str] = []
+            confidences: list[float] = []
+            last_img_hash: Optional[bytes] = None
             no_change_count = 0
-            max_no_change = 3  # Stop after 3 identical captures
-            max_segments = 50  # Safety limit
-            
+            max_no_change = 3
+            max_segments = 50
+
             try:
-                # Initial capture
-                for i in range(max_segments):
-                    # Check for ESC to cancel
+                for _ in range(max_segments):
                     if keyboard.is_pressed("esc"):
                         log("Auto-scroll cancelled by user")
                         break
-                    
-                    # Capture current viewport
-                    img_b64 = capture_region_base64(x, 0, w, screen_h)
-                    segments.append(img_b64)
-                    
-                    # OCR this segment
-                    txt = ocr_region(x, 0, w, screen_h)
+
+                    img = capture_region_image(x, 0, w, screen_h)
+                    segments.append(img)
+
+                    txt, confidence = ocr_image(
+                        img,
+                        int(self.cfg.get("tesseract_psm", 6)),
+                    )
                     if txt.strip():
                         ocr_segments.append(txt.strip())
-                    
-                    log(f"Auto-scroll: captured segment {len(segments)} ({len(txt)} chars)")
-                    
-                    # Check if content changed (simple hash comparison)
-                    import hashlib
-                    img_hash = hashlib.md5(base64.b64decode(img_b64)).hexdigest()
+                    if confidence > 0:
+                        confidences.append(confidence)
+
+                    log(
+                        f"Auto-scroll: captured segment {len(segments)} "
+                        f"({len(txt)} chars, OCR confidence={confidence:.1f})"
+                    )
+
+                    # MD5 is only a cheap frame-equality fingerprint here, not security.
+                    img_hash = hashlib.md5(img.tobytes()).digest()
                     if img_hash == last_img_hash:
                         no_change_count += 1
                         if no_change_count >= max_no_change:
-                            log(f"Auto-scroll: reached bottom (no change for {max_no_change} captures)")
+                            log(
+                                "Auto-scroll: reached bottom "
+                                f"(no change for {max_no_change} captures)"
+                            )
                             break
                     else:
                         no_change_count = 0
                     last_img_hash = img_hash
-                    
-                    # Scroll down (Page Down key)
+
                     keyboard.send("page down")
-                    time.sleep(0.6)  # Wait for scroll animation and render
-                    
+                    time.sleep(0.6)
+
                 if not segments:
-                    self.root.after(0, lambda: self.overlays.update(placeholder, "Auto-scroll capture cancelled"))
+                    self.root.after(
+                        0,
+                        lambda: self.overlays.update(
+                            placeholder, "Auto-scroll capture cancelled"
+                        ),
+                    )
                     self.root.after(0, lambda: self.status.set_dot("#c04040"))
                     return
 
-                # Stitch images vertically (same as capture_scroll_region)
-                try:
-                    images = []
-                    for b64 in segments:
-                        img_data = base64.b64decode(b64)
-                        img = Image.open(io.BytesIO(img_data)).convert("RGB")
-                        images.append(img)
-                    
-                    total_h = sum(img.height for img in images)
-                    max_w = max(img.width for img in images)
-                    combined = Image.new("RGB", (max_w, total_h), "white")
-                    
-                    y_offset = 0
-                    for img in images:
-                        combined.paste(img, (0, y_offset))
-                        y_offset += img.height
-                    
-                    buf = io.BytesIO()
-                    combined.save(buf, format="JPEG", quality=85)
-                    combined_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
-                    
-                    combined_ocr = "\n\n".join(ocr_segments)
-                    combined_ocr = clean_question_text(combined_ocr)
-                    
-                    log(f"Auto-scroll: {len(segments)} segments, {combined.width}x{combined.height}px, {len(combined_ocr)} chars OCR")
-                    
-                except Exception as e:
-                    log(f"Failed to stitch auto-scroll capture: {e}")
-                    combined_b64 = segments[0]
-                    combined_ocr = ocr_segments[0] if ocr_segments else ""
+                combined = stitch_images(segments)
+                combined_b64 = image_to_base64(combined)
+                combined_ocr = clean_question_text("\n\n".join(ocr_segments))
+                combined_confidence = (
+                    sum(confidences) / len(confidences) if confidences else 0.0
+                )
 
-                # Clean up
-                if combined_ocr:
-                    combined_ocr = clean_question_text(combined_ocr)
+                ocr_usable, ocr_reason = assess_ocr_quality(
+                    combined_ocr,
+                    combined_confidence,
+                    self.cfg,
+                )
+                prefer_vision = not ocr_usable
+                log(
+                    f"Auto-scroll: {len(segments)} segments, "
+                    f"{combined.width}x{combined.height}px, "
+                    f"{len(combined_ocr)} chars OCR, "
+                    f"confidence={combined_confidence:.1f}; "
+                    f"quality={ocr_reason}; "
+                    f"strategy={'vision-first' if prefer_vision else 'text-first'}"
+                )
 
-                self.root.after(0, lambda: self.overlays.update(placeholder, "Thinking…"))
+                self.root.after(
+                    0, lambda: self.overlays.update(placeholder, "Thinking…")
+                )
                 self.root.after(0, lambda: self.status.set_dot("#808080"))
-
-                # Run LLM
                 threading.Thread(
                     target=self._run_llm,
-                    args=(combined_ocr, placeholder, anchor_x, anchor_y, combined_b64),
+                    args=(
+                        combined_ocr,
+                        placeholder,
+                        anchor_x,
+                        anchor_y,
+                        combined_b64,
+                        prefer_vision,
+                    ),
                     daemon=True,
                 ).start()
 
             except Exception as e:
                 log(f"Auto-scroll error: {e}")
-                self.root.after(0, lambda: self.overlays.update(placeholder, f"Auto-scroll failed: {e}"))
+                self.root.after(
+                    0,
+                    lambda: self.overlays.update(
+                        placeholder, f"Auto-scroll failed: {e}"
+                    ),
+                )
                 self.root.after(0, lambda: self.status.set_dot("#c04040"))
 
         threading.Thread(target=worker, daemon=True).start()
@@ -1620,32 +1672,60 @@ class App:
         self.overlays.clear_all()
         anchor_x, anchor_y = x + w, y
 
+        captured: Optional[Image.Image] = None
         image_b64: Optional[str] = None
         try:
-            image_b64 = capture_region_base64(x, y, w, h)
+            captured = capture_region_image(x, y, w, h)
+            image_b64 = image_to_base64(captured)
         except Exception as e:
             log(f"Image capture warning: {e}")
 
-        # OCR fallback/supplement
         text = ""
-        try:
-            text = ocr_region(x, y, w, h, int(cfg.get("tesseract_psm", 6)))
-            text = clean_question_text(text)
-        except Exception as e:
-            log(f"OCR warning: {e}")
+        ocr_confidence = 0.0
+        if captured is not None:
+            try:
+                text, ocr_confidence = ocr_image(
+                    captured,
+                    int(cfg.get("tesseract_psm", 6)),
+                )
+                text = clean_question_text(text)
+            except Exception as e:
+                log(f"OCR warning: {e}")
+
+        ocr_usable, ocr_reason = assess_ocr_quality(text, ocr_confidence, cfg)
+        prefer_vision = bool(image_b64) and not ocr_usable
+        log(
+            f"OCR quality: usable={ocr_usable} ({ocr_reason}); "
+            f"strategy={'vision-first' if prefer_vision else 'text-first'}"
+        )
 
         if not text.strip() and not image_b64:
             self.overlays.show(
-                f"No content found in region.\n\nPress {cfg.get('hotkey_reselect', 'alt+q')} to redefine region.",
-                anchor_x, anchor_y, fg="#ffd080",
+                f"No content found in region.\n\n"
+                f"Press {cfg.get('hotkey_reselect', 'alt+q')} to redefine region.",
+                anchor_x,
+                anchor_y,
+                fg="#ffd080",
             )
             return
 
-        placeholder = self.overlays.show("Thinking…", anchor_x, anchor_y, fg="#a0c0ff")
+        placeholder = self.overlays.show(
+            "Thinking…",
+            anchor_x,
+            anchor_y,
+            fg="#a0c0ff",
+        )
         self.status.set_dot("#808080")
         threading.Thread(
             target=self._run_llm,
-            args=(text, placeholder, anchor_x, anchor_y, image_b64),
+            args=(
+                text,
+                placeholder,
+                anchor_x,
+                anchor_y,
+                image_b64,
+                prefer_vision,
+            ),
             daemon=True,
         ).start()
 
@@ -1682,6 +1762,7 @@ class App:
         anchor_x: int,
         anchor_y: int,
         image_b64: Optional[str] = None,
+        prefer_vision: bool = False,
     ) -> None:
         """Background thread. Uses root.after() for all Tk operations."""
         def on_chunk(accumulated: str, _ep: str) -> None:
@@ -1694,14 +1775,23 @@ class App:
 
         try:
             final_raw, endpoint_used = self.llm.stream(
-                text, self.cfg, on_chunk, image_b64=image_b64, on_status=on_status
+                text,
+                self.cfg,
+                on_chunk,
+                image_b64=image_b64,
+                on_status=on_status,
+                prefer_vision=prefer_vision,
             )
             final_answer = extract_answer(final_raw)
             if not final_answer:
                 # Log the full raw response so we can diagnose extraction failures
                 log(f"extract_answer failed. endpoint={endpoint_used!r} raw={final_raw!r}")
                 final_answer = "⚠ No answer found.\n\nTry selecting a larger region or re-copying the text."
-            log(f"Input question ({len(text)} chars, image={'yes' if image_b64 else 'no'}):\n{text}\n--> Answer from '{endpoint_used}': {final_answer}")
+            log(
+                f"Input question ({len(text)} chars, image={'yes' if image_b64 else 'no'}, "
+                f"strategy={'vision-first' if prefer_vision else 'text-first'}):\n"
+                f"{text}\n--> Answer from '{endpoint_used}': {final_answer}"
+            )
             self.overlays.record_last(final_answer, anchor_x, anchor_y, endpoint_used)
             self.root.after(0, lambda a=final_answer: self.overlays.update(placeholder, a))
             self.root.after(0, lambda: self.status.set_dot("#40c040"))
@@ -1720,20 +1810,7 @@ class App:
         self.root.mainloop()
 
 
-def enforce_single_instance() -> Any:
-    if os.name == "nt":
-        import ctypes
-        kernel32 = ctypes.windll.kernel32
-        mutex_name = "Global\\TAGrader_SingleInstance_Mutex"
-        mutex = kernel32.CreateMutexW(None, False, mutex_name)
-        if kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
-            log("Another instance of TA Grader is already running. Exiting duplicate.")
-            sys.exit(0)
-        return mutex
-    return None
-
-
 if __name__ == "__main__":
-    _mutex = enforce_single_instance()
+    _mutex = ensure_single_instance()
     log(f"=== {APP_NAME} started ===")
     App().run()
