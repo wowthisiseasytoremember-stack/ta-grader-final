@@ -1,22 +1,38 @@
 # Changelog — TA Grader
 
-## 2026-08-01 05:30 UTC — API keys refresh + yolo-auto endpoint
+## 2026-09-27 — routing/security audit
 
-### Done
-- Added Yolo-Auto (qwen3.6-35b-a3b) as primary endpoint with thinking disabled
-- Refreshed all API keys from Doppler (ichabod project)
-- Fixed invalid GEMINI_API_KEY (was AIzaSyDOFf... which returned 400)
-- Reordered endpoints: fast working ones first, broken ones as fallback
-- Bumped max_tokens from 1000 to 2000
-- Verified 12/12 correct across 3 working endpoints (~1-2s each)
-- Created git repo, AGENTS.md, CHANGELOG.md
+### Fixed
+- Gemini two-key rotation now actually retains and tries both configured keys.
+- API-key values are no longer inserted into the live config object and therefore cannot be persisted by region-setting actions.
+- Environment/.env is checked before Doppler, avoiding needless secret-manager subprocess calls.
+- Fixed region, manual scroll, and auto-scroll now capture each viewport once and reuse the same frame for OCR and vision.
+- OCR returns confidence from the same Tesseract pass.
+- Strong OCR keeps the normal fast text-first endpoint order.
+- Weak OCR promotes vision-capable endpoints first and omits suspect OCR text from the vision prompt.
+- Every endpoint now declares vision capability explicitly.
+- 5xx, timeout, and connection failures now honor per-endpoint retry counts before failover.
+- Streaming deadlines use a monotonic clock with tighter bounds.
+- Duplicate single-instance mutex logic was removed.
 
-### In Progress
-- Gemini rate limiting — all keys hitting 429, needs quota reset or new project
+### Preserved and integrated
+- Manual scroll region: `alt+shift+x` to set, `alt+shift+z` to capture.
+- Auto-scroll region: `alt+shift+s` to set X bounds, `alt+shift+a` to Page-Down capture.
+- Both scroll modes now share the same adaptive OCR/vision routing policy.
 
-### Blocked
-- DeepSeek account has zero balance (402) — needs top-up
-- NVIDIA endpoint times out at 15s — unreliable
+### Hardened
+- `.env.*` and `keys.cmd` are gitignored.
+- Added a blank `.env.example`.
+- Added CI/contract tests for syntax, endpoint order, explicit capabilities, key rotation, secret safety, capture architecture, and scroll-feature preservation.
+- Removed stale status claims and secret-like fragments from the current changelog.
 
-### For Produce
-> TA Grader: yolo-auto added as primary endpoint, thinking disabled. All keys refreshed from Doppler. Gemini and DeepSeek still broken (quota/balance). 3 working endpoints verified.
+### Measured
+Representative synthetic multiple-choice screenshots on the audit runner:
+- JPEG + base64 preparation: about 1.5–2.7 ms median.
+- Tesseract OCR: about 187–311 ms median.
+- Clean 18–28 px text: 100% normalized OCR similarity.
+- Tiny 13 px text: about 79% similarity with option-label corruption.
+
+Image preparation is much cheaper locally than OCR, but image-only routing would skip the two highest-priority text-only endpoints. The implemented policy is therefore adaptive rather than OCR-only or image-only.
+
+See `docs/OCR_VISION_AUDIT_2026-09-27.md`.
