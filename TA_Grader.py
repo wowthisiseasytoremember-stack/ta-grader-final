@@ -310,11 +310,11 @@ def get_api_key(cfg: dict[str, Any], key_name: str) -> Optional[str]:
     if key_name in _SECRET_CACHE:
         return _SECRET_CACHE[key_name]
 
-    project = (cfg.get("doppler_project") or "").strip()
-    v = doppler_get(project, key_name)
+    env_v = os.environ.get(key_name, "")
+    v = env_v.strip() if env_v and env_v.strip() else None
     if not v:
-        env_v = os.environ.get(key_name, "")
-        v = env_v.strip() if env_v and env_v.strip() else None
+        project = (cfg.get("doppler_project") or "").strip()
+        v = doppler_get(project, key_name)
 
     _SECRET_CACHE[key_name] = v
     return v
@@ -1179,7 +1179,6 @@ class App:
     """Top-level application class. Creates all components and drives the main loop."""
 
     def __init__(self) -> None:
-        self._mutex = ensure_single_instance()
         enable_dpi_awareness()
 
         # Tk root must exist before any messagebox/Toplevel
@@ -1465,20 +1464,7 @@ class App:
         self.root.mainloop()
 
 
-def enforce_single_instance() -> Any:
-    if os.name == "nt":
-        import ctypes
-        kernel32 = ctypes.windll.kernel32
-        mutex_name = "Global\\TAGrader_SingleInstance_Mutex"
-        mutex = kernel32.CreateMutexW(None, False, mutex_name)
-        if kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
-            log("Another instance of TA Grader is already running. Exiting duplicate.")
-            sys.exit(0)
-        return mutex
-    return None
-
-
 if __name__ == "__main__":
-    _mutex = enforce_single_instance()
+    _mutex = ensure_single_instance()
     log(f"=== {APP_NAME} started ===")
     App().run()
