@@ -1233,7 +1233,6 @@ class App:
     """Top-level application class. Creates all components and drives the main loop."""
 
     def __init__(self) -> None:
-        self._mutex = ensure_single_instance()
         enable_dpi_awareness()
 
         # Tk root must exist before any messagebox/Toplevel
@@ -1391,7 +1390,10 @@ class App:
         self.fixed_region = box
         try:
             self.cfg["fixed_ocr_region"] = list(box)
-            CONFIG_PATH.write_text(json.dumps(self.cfg, indent=2), encoding="utf-8")
+            CONFIG_PATH.write_text(
+                json.dumps(config_for_disk(self.cfg), indent=2),
+                encoding="utf-8",
+            )
             log(f"Saved fixed OCR region {box} to config.json")
         except Exception as e:
             log(f"Failed to save fixed OCR region to config.json: {e}")
@@ -1408,7 +1410,10 @@ class App:
         self.scroll_region = box
         try:
             self.cfg["scroll_region"] = list(box)
-            CONFIG_PATH.write_text(json.dumps(self.cfg, indent=2), encoding="utf-8")
+            CONFIG_PATH.write_text(
+                json.dumps(config_for_disk(self.cfg), indent=2),
+                encoding="utf-8",
+            )
             log(f"Saved scroll region {box} to config.json")
             self.overlays.show(f"Scroll region set: {box}\n\nPress {self.cfg.get('hotkey_scroll', 'alt+shift+z')} to capture.", 
                                box[0] + box[2], box[1], fg="#80ff80")
@@ -1430,23 +1435,39 @@ class App:
         self.status.set_dot("#ffaa00")
 
         def worker():
-            combined_b64, combined_text = capture_scroll_region(x, y, w, h)
+            combined_b64, combined_text, combined_confidence = capture_scroll_region(
+                x, y, w, h
+            )
             if not combined_b64:
                 self.root.after(0, lambda: self.overlays.update(placeholder, "Scroll capture cancelled"))
                 self.root.after(0, lambda: self.status.set_dot("#c04040"))
                 return
 
-            # Clean up the combined text
-            if combined_text:
-                combined_text = clean_question_text(combined_text)
+            combined_text = clean_question_text(combined_text or "")
+            ocr_usable, ocr_reason = assess_ocr_quality(
+                combined_text,
+                combined_confidence,
+                self.cfg,
+            )
+            prefer_vision = not ocr_usable
+            log(
+                f"Scroll OCR quality: usable={ocr_usable} ({ocr_reason}); "
+                f"strategy={'vision-first' if prefer_vision else 'text-first'}"
+            )
 
             self.root.after(0, lambda: self.overlays.update(placeholder, "Thinking…"))
             self.root.after(0, lambda: self.status.set_dot("#808080"))
 
-            # Run LLM with combined image and text
             threading.Thread(
                 target=self._run_llm,
-                args=(combined_text, placeholder, anchor_x, anchor_y, combined_b64),
+                args=(
+                    combined_text,
+                    placeholder,
+                    anchor_x,
+                    anchor_y,
+                    combined_b64,
+                    prefer_vision,
+                ),
                 daemon=True,
             ).start()
 
@@ -1457,19 +1478,32 @@ class App:
         self.overlays.clear_all()
         anchor_x, anchor_y = x + w, y
 
+        captured: Optional[Image.Image] = None
         image_b64: Optional[str] = None
         try:
-            image_b64 = capture_region_base64(x, y, w, h)
+            captured = capture_region_image(x, y, w, h)
+            image_b64 = image_to_base64(captured)
         except Exception as e:
             log(f"Image capture warning: {e}")
 
-        # OCR fallback/supplement
         text = ""
-        try:
-            text = ocr_region(x, y, w, h, int(cfg.get("tesseract_psm", 6)))
-            text = clean_question_text(text)
-        except Exception as e:
-            log(f"OCR warning: {e}")
+        ocr_confidence = 0.0
+        if captured is not None:
+            try:
+                text, ocr_confidence = ocr_image(
+                    captured,
+                    int(cfg.get("tesseract_psm", 6)),
+                )
+                text = clean_question_text(text)
+            except Exception as e:
+                log(f"OCR warning: {e}")
+
+        ocr_usable, ocr_reason = assess_ocr_quality(text, ocr_confidence, cfg)
+        prefer_vision = bool(image_b64) and not ocr_usable
+        log(
+            f"OCR quality: usable={ocr_usable} ({ocr_reason}); "
+            f"strategy={'vision-first' if prefer_vision else 'text-first'}"
+        )
 
         if not text.strip() and not image_b64:
             self.overlays.show(
@@ -1482,7 +1516,7 @@ class App:
         self.status.set_dot("#808080")
         threading.Thread(
             target=self._run_llm,
-            args=(text, placeholder, anchor_x, anchor_y, image_b64),
+            args=(text, placeholder, anchor_x, anchor_y, image_b64, prefer_vision),
             daemon=True,
         ).start()
 
@@ -1519,6 +1553,7 @@ class App:
         anchor_x: int,
         anchor_y: int,
         image_b64: Optional[str] = None,
+        prefer_vision: bool = False,
     ) -> None:
         """Background thread. Uses root.after() for all Tk operations."""
         def on_chunk(accumulated: str, _ep: str) -> None:
@@ -1531,14 +1566,23 @@ class App:
 
         try:
             final_raw, endpoint_used = self.llm.stream(
-                text, self.cfg, on_chunk, image_b64=image_b64, on_status=on_status
+                text,
+                self.cfg,
+                on_chunk,
+                image_b64=image_b64,
+                on_status=on_status,
+                prefer_vision=prefer_vision,
             )
             final_answer = extract_answer(final_raw)
             if not final_answer:
                 # Log the full raw response so we can diagnose extraction failures
                 log(f"extract_answer failed. endpoint={endpoint_used!r} raw={final_raw!r}")
                 final_answer = "⚠ No answer found.\n\nTry selecting a larger region or re-copying the text."
-            log(f"Input question ({len(text)} chars, image={'yes' if image_b64 else 'no'}):\n{text}\n--> Answer from '{endpoint_used}': {final_answer}")
+            log(
+                f"Input question ({len(text)} chars, image={'yes' if image_b64 else 'no'}, "
+                f"strategy={'vision-first' if prefer_vision else 'text-first'}):\n"
+                f"{text}\n--> Answer from '{endpoint_used}': {final_answer}"
+            )
             self.overlays.record_last(final_answer, anchor_x, anchor_y, endpoint_used)
             self.root.after(0, lambda a=final_answer: self.overlays.update(placeholder, a))
             self.root.after(0, lambda: self.status.set_dot("#40c040"))
@@ -1557,20 +1601,7 @@ class App:
         self.root.mainloop()
 
 
-def enforce_single_instance() -> Any:
-    if os.name == "nt":
-        import ctypes
-        kernel32 = ctypes.windll.kernel32
-        mutex_name = "Global\\TAGrader_SingleInstance_Mutex"
-        mutex = kernel32.CreateMutexW(None, False, mutex_name)
-        if kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
-            log("Another instance of TA Grader is already running. Exiting duplicate.")
-            sys.exit(0)
-        return mutex
-    return None
-
-
 if __name__ == "__main__":
-    _mutex = enforce_single_instance()
+    _mutex = ensure_single_instance()
     log(f"=== {APP_NAME} started ===")
     App().run()
