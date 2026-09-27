@@ -1,22 +1,31 @@
 # Changelog — TA Grader
 
-## 2026-08-01 05:30 UTC — API keys refresh + yolo-auto endpoint
+## 2026-09-27 — routing/security audit
 
-### Done
-- Added Yolo-Auto (qwen3.6-35b-a3b) as primary endpoint with thinking disabled
-- Refreshed all API keys from Doppler (ichabod project)
-- Fixed invalid GEMINI_API_KEY (was AIzaSyDOFf... which returned 400)
-- Reordered endpoints: fast working ones first, broken ones as fallback
-- Bumped max_tokens from 1000 to 2000
-- Verified 12/12 correct across 3 working endpoints (~1-2s each)
-- Created git repo, AGENTS.md, CHANGELOG.md
+### Fixed
+- Fixed Gemini key rotation: all configured keys are retained and tried instead of caching only the first key.
+- Removed runtime API-key values from the config object so changing the OCR region cannot persist secrets into `config.json`.
+- Added recursive runtime-field stripping before config persistence.
+- Replaced two independent screen grabs with one shared capture for OCR and vision.
+- Added OCR confidence + option-marker quality checks.
+- Added adaptive routing: strong OCR keeps the fast text-first chain; weak OCR promotes vision-capable endpoints first.
+- Weak-OCR vision requests omit the suspect OCR transcript instead of biasing the vision model with corrupted text.
+- Made vision capability explicit for every configured endpoint.
+- Fixed retry behavior so transient 5xx/timeouts/connection failures can retry the same key before rotating/failing over.
+- Replaced wall-clock stream deadlines with monotonic timing and reduced the minimum runaway-stream deadline.
 
-### In Progress
-- Gemini rate limiting — all keys hitting 429, needs quota reset or new project
+### Hardened
+- Added `.env.*` and `keys.cmd` to gitignore.
+- Added static CI checks for syntax, endpoint order/capabilities, Gemini key rotation configuration, and secret-cache regressions.
+- Removed stale endpoint/status documentation and secret-like fragments from the current changelog.
 
-### Blocked
-- DeepSeek account has zero balance (402) — needs top-up
-- NVIDIA endpoint times out at 15s — unreliable
+### Measured
+Synthetic question-image benchmark on the audit runner:
+- JPEG + base64 preparation: about 1.5–2.7 ms median.
+- Tesseract OCR: about 187–311 ms median.
+- Clean 18–28 px text: 100% normalized OCR similarity in the benchmark.
+- Tiny 13 px text exposed a material OCR failure (about 79% similarity, including option-label corruption).
 
-### For Produce
-> TA Grader: yolo-auto added as primary endpoint, thinking disabled. All keys refreshed from Doppler. Gemini and DeepSeek still broken (quota/balance). 3 working endpoints verified.
+Conclusion: preparing an image is much cheaper locally than OCR, but OCR remains the correct fast path when it is trustworthy because the two highest-priority endpoints are text-only. Vision should take over when OCR quality is suspect.
+
+See `docs/OCR_VISION_AUDIT_2026-09-27.md`.
