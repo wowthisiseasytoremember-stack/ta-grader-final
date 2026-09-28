@@ -34,8 +34,8 @@
       "url": "https://yolo-auto.com/v1/chat/completions",
       "model": "qwen3.8-flash",
       "key_env": [
-        "YOLO_AUTO_API_KEY",
-        "YOLO_API_KEY"
+        "YOLO_AUTO_API_KEY_2",
+        "YOLO_AUTO_API_KEY"
       ],
       "timeout_sec": 10,
       "max_retries": 1,
@@ -47,8 +47,8 @@
       "url": "https://yolo-auto.com/v1/chat/completions",
       "model": "yolo-small",
       "key_env": [
-        "YOLO_AUTO_API_KEY",
-        "YOLO_API_KEY"
+        "YOLO_AUTO_API_KEY_2",
+        "YOLO_AUTO_API_KEY"
       ],
       "timeout_sec": 10,
       "max_retries": 1,
@@ -84,18 +84,6 @@
       "name": "nvidia-llama-3.2-11b-vision",
       "url": "https://integrate.api.nvidia.com/v1/chat/completions",
       "model": "meta/llama-3.2-11b-vision-instruct",
-      "key_env": [
-        "NVIDIA_API_KEY"
-      ],
-      "timeout_sec": 15,
-      "max_retries": 1,
-      "supports_response_format": true,
-      "supports_vision": true
-    },
-    {
-      "name": "nvidia-phi-3-vision",
-      "url": "https://integrate.api.nvidia.com/v1/chat/completions",
-      "model": "microsoft/phi-3-vision-128k-instruct",
       "key_env": [
         "NVIDIA_API_KEY"
       ],

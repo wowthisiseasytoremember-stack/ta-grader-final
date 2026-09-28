@@ -21,7 +21,6 @@ class ContractTests(unittest.TestCase):
                 "gemini-flash",
                 "openai-gpt-4o-mini",
                 "nvidia-llama-3.2-11b-vision",
-                "nvidia-phi-3-vision",
                 "nvidia-nemotron-lightning",
                 "omniroute-gemini-fast",
             ],
@@ -40,6 +39,13 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(
             gemini["key_env"],
             ["GEMINI_API_KEY", "GEMINI_FLASH_KEY_2"],
+        )
+
+    def test_yolo_has_two_rotation_keys(self):
+        yolo = next(ep for ep in CONFIG["endpoints"] if ep["name"] == "yolo-auto-flash")
+        self.assertEqual(
+            yolo["key_env"],
+            ["YOLO_AUTO_API_KEY_2", "YOLO_AUTO_API_KEY"],
         )
 
     def test_runtime_secret_values_are_not_cached_in_config(self):
