@@ -809,13 +809,14 @@ class LLMClient:
         # Base headers (auth filled in per-key below)
         base_headers: dict[str, str] = {
             "Content-Type": "application/json",
-            "User-Agent": "curl/7.88.1",
+            "User-Agent": "TA-Grader/1.0",
         }
         if "openrouter.ai" in url.lower():
             base_headers["HTTP-Referer"] = "https://github.com/justinryan/ta-grader"
             base_headers["X-Title"] = "TA Grader"
         if "opencode.ai" in url.lower():
-            base_headers["x-session-id"] = str(uuid.uuid4())
+            # OpenCode Go routes and caches sessions using this documented header.
+            base_headers["x-opencode-session"] = str(uuid.uuid4())
         if ep.get("headers"):
             base_headers.update(ep["headers"])
 
