@@ -140,10 +140,31 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "ocr_min_confidence": 75.0,
     "ocr_min_option_markers": 3,
     "doppler_project": "ichabod",
+    "doppler_config": "dev",
     "system_prompt": PERSONA,
     "max_tokens": 1000,
     "temperature": 0.2,
     "endpoints": [
+        {
+            "name": "opencode-go-longcat-free",
+            "url": "https://opencode.ai/zen/go/v1/chat/completions",
+            "model": "longcat-2.5-preview-free",
+            "key_env": ["OPENCODEGOTAGRADER"],
+            "timeout_sec": 30,
+            "max_retries": 0,
+            "supports_response_format": False,
+            "supports_vision": False,
+        },
+        {
+            "name": "opencode-go-mimo-v2.6-flash",
+            "url": "https://opencode.ai/zen/go/v1/chat/completions",
+            "model": "mimo-v2.6-flash",
+            "key_env": ["OPENCODEGOTAGRADER"],
+            "timeout_sec": 30,
+            "max_retries": 0,
+            "supports_response_format": False,
+            "supports_vision": False,
+        },
         {
             "name": "yolo-auto-flash",
             "url": "https://yolo-auto.com/v1/chat/completions",
@@ -286,13 +307,14 @@ def load_config() -> dict[str, Any]:
 # Keyring — Doppler first, env var fallback
 # ---------------------------------------------------------------------------
 
-def doppler_get(project: str, key_name: str) -> Optional[str]:
+def doppler_get(project: str, key_name: str, config: str = "") -> Optional[str]:
     """Try to fetch a secret from Doppler. Returns None on any failure."""
     if not project:
         return None
     try:
         r = subprocess.run(
-            ["doppler", "secrets", "get", "--plain", key_name, "-p", project],
+            ["doppler", "secrets", "get", "--plain", key_name, "-p", project]
+            + (["-c", config] if config else []),
             capture_output=True, text=True, timeout=10,
         )
         if r.returncode == 0:
@@ -320,7 +342,8 @@ def get_api_key(cfg: dict[str, Any], key_name: str) -> Optional[str]:
     value = env_v.strip() if env_v and env_v.strip() else None
     if not value:
         project = (cfg.get("doppler_project") or "").strip()
-        value = doppler_get(project, key_name)
+        config = (cfg.get("doppler_config") or "").strip()
+        value = doppler_get(project, key_name, config)
 
     _SECRET_CACHE[key_name] = value
     return value
