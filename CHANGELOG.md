@@ -36,3 +36,9 @@ Representative synthetic multiple-choice screenshots on the audit runner:
 Image preparation is much cheaper locally than OCR, but image-only routing would skip the two highest-priority text-only endpoints. The implemented policy is therefore adaptive rather than OCR-only or image-only.
 
 See `docs/OCR_VISION_AUDIT_2026-09-27.md`.
+
+## 2026-10-06 — OpenCode Go primary and canonical repo
+
+- Added OpenCode Go LongCat Preview Free as the first endpoint and MiMo-V2.6-Flash as the second.
+- Added the `OPENCODEGOTAGRADER` Doppler secret name and explicit `dev` config lookup.
+- Documented the Desktop shortcut checkout and retired the separate `Projects/ta-grader` implementation.
