@@ -30,19 +30,6 @@
   "temperature": 0.2,
   "endpoints": [
     {
-      "name": "opencode-go-longcat-free",
-      "model": "longcat-2.5-preview-free",
-      "url": "https://opencode.ai/zen/go/v1/chat/completions",
-      "key_env": [
-        "OPENCODEGOTAGRADER"
-      ],
-      "timeout_sec": 8,
-      "max_retries": 0,
-      "supports_response_format": false,
-      "supports_vision": false,
-      "total_timeout_sec": 7
-    },
-    {
       "name": "opencode-go-mimo-v2.6-flash",
       "model": "mimo-v2.6-flash",
       "url": "https://opencode.ai/zen/go/v1/chat/completions",
@@ -54,6 +41,19 @@
       "supports_response_format": false,
       "supports_vision": false,
       "total_timeout_sec": 4
+    },
+    {
+      "name": "opencode-go-longcat-free",
+      "model": "longcat-2.5-preview-free",
+      "url": "https://opencode.ai/zen/go/v1/chat/completions",
+      "key_env": [
+        "OPENCODEGOTAGRADER"
+      ],
+      "timeout_sec": 8,
+      "max_retries": 0,
+      "supports_response_format": false,
+      "supports_vision": false,
+      "total_timeout_sec": 7
     },
     {
       "name": "yolo-auto-flash",
