@@ -2,6 +2,7 @@
 
 ## 2026-10-06 — faster OpenCode Go primary
 - MiMo-V2.6-Flash is now the first OpenCode Go endpoint; free LongCat Preview Free is the fallback.
+- Raised OpenCode request budgets after live runs showed MiMo needed about 4 seconds and LongCat about 8 seconds to finish.
 
 ## 2026-09-27 — routing/security audit
 
