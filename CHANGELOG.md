@@ -1,5 +1,8 @@
 # Changelog — TA Grader
 
+## 2026-10-06 — faster OpenCode Go primary
+- MiMo-V2.6-Flash is now the first OpenCode Go endpoint; free LongCat Preview Free is the fallback.
+
 ## 2026-09-27 — routing/security audit
 
 ### Fixed
