@@ -6,7 +6,7 @@ Canonical Windows desktop app source: [GitHub repository](https://github.com/wow
 
 1. OpenCode Go `longcat-2.5-preview-free` (free preview)
 2. OpenCode Go `mimo-v2.6-flash`
-3. Existing configured endpoints, including GitHub Copilot, Gemini Flash, and Yolo
+3. Remaining configured endpoints, including Yolo, Gemini Flash, and other available providers
 
 Both OpenCode models use `https://opencode.ai/zen/go/v1/chat/completions` and the `OPENCODEGOTAGRADER` secret. LongCat and MiMo were verified with successful OpenCode Go responses.
 
