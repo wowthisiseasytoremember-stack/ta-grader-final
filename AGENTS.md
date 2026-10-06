@@ -17,8 +17,8 @@ All screen capture modes use the same adaptive policy:
 Clipboard input remains text-first because it is already machine-readable.
 
 ## Endpoint priority
-1. OpenCode Go `longcat-2.5-preview-free` — free text-first primary
-2. OpenCode Go `mimo-v2.6-flash` — low-cost text-first fallback
+1. OpenCode Go `mimo-v2.6-flash` — fast text-first primary
+2. OpenCode Go `longcat-2.5-preview-free` — free text-first fallback
 3. `yolo-auto-flash` and remaining configured endpoints — later fallbacks
 
 ## Hotkeys
