@@ -17,14 +17,9 @@ All screen capture modes use the same adaptive policy:
 Clipboard input remains text-first because it is already machine-readable.
 
 ## Endpoint priority
-1. `yolo-auto-flash` — qwen3.8-flash, text-only
-2. `yolo-auto-small` — yolo-small, text-only
-3. `gemini-flash` — gemini-2.5-flash, vision-capable, two-key rotation
-4. `openai-gpt-4o-mini` — vision-capable
-5. `nvidia-llama-3.2-11b-vision` — vision-capable
-6. `nvidia-phi-3-vision` — vision-capable
-7. `nvidia-nemotron-lightning` — text-only
-8. `omniroute-gemini-fast` — local text-only fallback
+1. OpenCode Go `longcat-2.5-preview-free` — free text-first primary
+2. OpenCode Go `mimo-v2.6-flash` — low-cost text-first fallback
+3. `yolo-auto-flash` and remaining configured endpoints — later fallbacks
 
 ## Hotkeys
 - `menu` / `apps` — fixed region
@@ -46,7 +41,10 @@ Clipboard input remains text-first because it is already machine-readable.
 
 Expected names:
 `YOLO_AUTO_API_KEY`, `YOLO_API_KEY`, `GEMINI_API_KEY`, `GEMINI_FLASH_KEY_2`,
-`OPENAI_API_KEY`, `NVIDIA_API_KEY`, `OMNIROUTE_API_KEY`.
+`OPENAI_API_KEY`, `NVIDIA_API_KEY`, `OMNIROUTE_API_KEY`, `OPENCODEGOTAGRADER`.
+
+OpenCode Go uses Doppler project `ichabod`, config `dev`. The Desktop shortcut copy also
+loads its gitignored `.env` at startup; after changing that file, restart TA Grader.
 
 ## Validation
 - `tests/test_contract.py` protects endpoint order, vision declarations, multi-key rotation, secret handling, all scroll modes, adaptive routing, and the single-instance gate.
