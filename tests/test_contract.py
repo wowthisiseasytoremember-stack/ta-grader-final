@@ -16,8 +16,8 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(
             [ep["name"] for ep in CONFIG["endpoints"]],
             [
-                "opencode-go-longcat-free",
                 "opencode-go-mimo-v2.6-flash",
+                "opencode-go-longcat-free",
                 "yolo-auto-flash",
                 "yolo-auto-small",
                 "gemini-flash",
