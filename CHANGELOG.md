@@ -1,5 +1,17 @@
 # Changelog — TA Grader
 
+## 2026-10-02 — fast text-only routing and SurfaceBook recovery
+
+- Prefer Copilot GPT-4o mini, then YOLO Qwen, Copilot Gemini Flash, and Antigravity Flash/Lite.
+- Disable vision by default; screenshot inputs still use OCR. Preserve adaptive vision for opt-in.
+- Disable quota-exhausted Ollama Cloud and failed legacy credentials in the shipped chain.
+- Use Tailscale for the SurfaceBook router URL; support an environment override.
+- Require complete JSON, close HTTP responses, reduce retries, and cool down failed endpoints.
+- Bind Menu once on release and debounce duplicate queued OCR captures for 1.5 seconds.
+- Preserve SurfaceBook config/credentials with backups and restart the GUI in its interactive session.
+- 21 local and Windows tests passed; five real captures used Copilot mini in roughly one second each.
+- Add current setup, recovery, and consolidation documentation.
+
 ## 2026-09-27 — routing/security audit
 
 ### Fixed

@@ -135,96 +135,144 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "overlay_font_size": 18,
     "max_overlay_width_px": 620,
     "max_overlay_height_px": 280,
-    "tesseract_path": r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+    "tesseract_path": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe",
     "tesseract_psm": 6,
     "ocr_min_confidence": 75.0,
     "ocr_min_option_markers": 3,
     "doppler_project": "ichabod",
     "system_prompt": PERSONA,
-    "max_tokens": 1000,
+    "max_tokens": 512,
     "temperature": 0.2,
-    "endpoints": [
-        {
-            "name": "yolo-auto-flash",
-            "url": "https://yolo-auto.com/v1/chat/completions",
-            "model": "qwen3.8-flash",
-            "key_env": ["YOLO_AUTO_API_KEY", "YOLO_API_KEY"],
-            "timeout_sec": 10,
-            "max_retries": 1,
-            "supports_response_format": False,
-            "supports_vision": False,
-        },
-        {
-            "name": "yolo-auto-small",
-            "url": "https://yolo-auto.com/v1/chat/completions",
-            "model": "yolo-small",
-            "key_env": ["YOLO_AUTO_API_KEY", "YOLO_API_KEY"],
-            "timeout_sec": 10,
-            "max_retries": 1,
-            "supports_response_format": False,
-            "supports_vision": False,
-        },
-        {
-            "name": "gemini-flash",
-            "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-            "model": "gemini-2.5-flash",
-            "key_env": ["GEMINI_API_KEY", "GEMINI_FLASH_KEY_2"],
-            "timeout_sec": 15,
-            "max_retries": 1,
-            "supports_response_format": True,
-            "supports_vision": True,
-        },
-        {
-            "name": "openai-gpt-4o-mini",
-            "url": "https://api.openai.com/v1/chat/completions",
-            "model": "gpt-4o-mini",
-            "key_env": ["OPENAI_API_KEY"],
-            "timeout_sec": 15,
-            "max_retries": 1,
-            "supports_response_format": True,
-            "supports_vision": True,
-        },
-        {
-            "name": "nvidia-llama-3.2-11b-vision",
-            "url": "https://integrate.api.nvidia.com/v1/chat/completions",
-            "model": "meta/llama-3.2-11b-vision-instruct",
-            "key_env": ["NVIDIA_API_KEY"],
-            "timeout_sec": 15,
-            "max_retries": 1,
-            "supports_response_format": True,
-            "supports_vision": True,
-        },
-        {
-            "name": "nvidia-phi-3-vision",
-            "url": "https://integrate.api.nvidia.com/v1/chat/completions",
-            "model": "microsoft/phi-3-vision-128k-instruct",
-            "key_env": ["NVIDIA_API_KEY"],
-            "timeout_sec": 15,
-            "max_retries": 1,
-            "supports_response_format": True,
-            "supports_vision": True,
-        },
-        {
-            "name": "nvidia-nemotron-lightning",
-            "url": "https://integrate.api.nvidia.com/v1/chat/completions",
-            "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
-            "key_env": ["NVIDIA_API_KEY"],
-            "timeout_sec": 15,
-            "max_retries": 1,
-            "supports_response_format": True,
-            "supports_vision": False,
-        },
-        {
-            "name": "omniroute-gemini-fast",
-            "url": "http://192.168.1.200:20128/v1/chat/completions",
-            "model": "gemini-2.5-flash",
-            "key_env": ["OMNIROUTE_API_KEY"],
-            "timeout_sec": 15,
-            "max_retries": 0,
-            "supports_response_format": False,
-            "supports_vision": False,
-        },
-    ],
+    "endpoints": [   {   'enabled': True,
+        'key_env': ['OMNIROUTE_API_KEY'],
+        'max_retries': 0,
+        'model': 'github/gpt-4o-mini',
+        'name': 'omniroute-copilot-mini',
+        'supports_response_format': False,
+        'supports_vision': False,
+        'timeout_sec': 4,
+        'total_timeout_sec': 6,
+        'url': 'http://100.122.158.123:20128/v1/chat/completions',
+        'url_env': 'OMNIROUTE_CHAT_URL'},
+    {   'enabled': True,
+        'key_env': ['YOLO_AUTO_API_KEY_2', 'YOLO_AUTO_API_KEY'],
+        'max_retries': 0,
+        'model': 'qwen3.8-27b',
+        'name': 'yolo-auto-flash',
+        'supports_response_format': False,
+        'supports_vision': False,
+        'timeout_sec': 4,
+        'total_timeout_sec': 6,
+        'url': 'https://yolo-auto.com/v1/chat/completions'},
+    {   'enabled': True,
+        'key_env': ['OMNIROUTE_API_KEY'],
+        'max_retries': 0,
+        'model': 'github/gemini-3.7-flash',
+        'name': 'omniroute-copilot-gemini-flash',
+        'supports_response_format': False,
+        'supports_vision': False,
+        'timeout_sec': 4,
+        'total_timeout_sec': 6,
+        'url': 'http://100.122.158.123:20128/v1/chat/completions',
+        'url_env': 'OMNIROUTE_CHAT_URL'},
+    {   'enabled': True,
+        'key_env': ['OMNIROUTE_API_KEY'],
+        'max_retries': 0,
+        'model': 'antigravity/gemini-3.1-flash-lite',
+        'name': 'omniroute-antigravity-lite',
+        'supports_response_format': False,
+        'supports_vision': False,
+        'timeout_sec': 4,
+        'total_timeout_sec': 6,
+        'url': 'http://100.122.158.123:20128/v1/chat/completions',
+        'url_env': 'OMNIROUTE_CHAT_URL'},
+    {   'enabled': True,
+        'key_env': ['OMNIROUTE_API_KEY'],
+        'max_retries': 0,
+        'model': 'antigravity/gemini-3.5-flash-lite',
+        'name': 'omniroute-antigravity-flash',
+        'supports_response_format': False,
+        'supports_vision': False,
+        'timeout_sec': 4,
+        'total_timeout_sec': 6,
+        'url': 'http://100.122.158.123:20128/v1/chat/completions',
+        'url_env': 'OMNIROUTE_CHAT_URL'},
+    {   'enabled': False,
+        'key_env': ['OMNIROUTE_API_KEY'],
+        'max_retries': 0,
+        'model': 'github/gpt-5-mini',
+        'name': 'omniroute-copilot-gpt5-mini',
+        'supports_response_format': False,
+        'supports_vision': False,
+        'timeout_sec': 6,
+        'total_timeout_sec': 9,
+        'url': 'http://100.122.158.123:20128/v1/chat/completions',
+        'url_env': 'OMNIROUTE_CHAT_URL'},
+    {   'enabled': False,
+        'key_env': ['OMNIROUTE_API_KEY'],
+        'max_retries': 0,
+        'model': 'yolo-auto/qwen3.8-27b',
+        'name': 'omniroute-yolo',
+        'supports_response_format': False,
+        'supports_vision': False,
+        'timeout_sec': 6,
+        'total_timeout_sec': 9,
+        'url': 'http://100.122.158.123:20128/v1/chat/completions',
+        'url_env': 'OMNIROUTE_CHAT_URL'},
+    {   'enabled': False,
+        'key_env': ['OMNIROUTE_API_KEY'],
+        'max_retries': 0,
+        'model': 'ollama-cloud/glm-5.3-flash',
+        'name': 'omniroute-ollama-cloud',
+        'supports_response_format': False,
+        'supports_vision': False,
+        'timeout_sec': 6,
+        'total_timeout_sec': 9,
+        'url': 'http://100.122.158.123:20128/v1/chat/completions',
+        'url_env': 'OMNIROUTE_CHAT_URL'},
+    {   'enabled': False,
+        'key_env': ['GEMINI_API_KEY', 'GEMINI_FLASH_KEY_2'],
+        'max_retries': 0,
+        'model': 'gemini-2.5-flash',
+        'name': 'gemini-flash',
+        'supports_response_format': True,
+        'supports_vision': True,
+        'timeout_sec': 6,
+        'total_timeout_sec': 9,
+        'url': 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'},
+    {   'enabled': False,
+        'key_env': ['OPENAI_API_KEY'],
+        'max_retries': 0,
+        'model': 'gpt-4o-mini',
+        'name': 'openai-gpt-4o-mini',
+        'supports_response_format': True,
+        'supports_vision': True,
+        'timeout_sec': 6,
+        'total_timeout_sec': 9,
+        'url': 'https://api.openai.com/v1/chat/completions'},
+    {   'enabled': False,
+        'key_env': ['NVIDIA_API_KEY'],
+        'max_retries': 0,
+        'model': 'meta/llama-3.2-11b-vision-instruct',
+        'name': 'nvidia-llama-3.2-11b-vision',
+        'supports_response_format': True,
+        'supports_vision': True,
+        'timeout_sec': 6,
+        'total_timeout_sec': 9,
+        'url': 'https://integrate.api.nvidia.com/v1/chat/completions'},
+    {   'enabled': False,
+        'key_env': ['NVIDIA_API_KEY'],
+        'max_retries': 0,
+        'model': 'nvidia/nemotron-3.5-lightning-30b-a3b',
+        'name': 'nvidia-nemotron-lightning',
+        'supports_response_format': True,
+        'supports_vision': False,
+        'timeout_sec': 6,
+        'total_timeout_sec': 9,
+        'url': 'https://integrate.api.nvidia.com/v1/chat/completions'}],
+    "endpoint_cooldown_sec": 60,
+    "vision_enabled": False,
+    "routing_version": 3
 }
 
 
@@ -681,6 +729,7 @@ class LLMClient:
 
     def __init__(self) -> None:
         self.session = requests.Session()
+        self._cooldown: dict[str, float] = {}
 
     def stream(
         self,
@@ -693,14 +742,51 @@ class LLMClient:
     ) -> tuple[str, str]:
         """Try configured order, promoting vision endpoints only when OCR is weak."""
         last_err: Any = "no endpoints configured"
+        if not cfg.get("vision_enabled", True):
+            image_b64 = None
+            prefer_vision = False
+        cooldown_sec = float(cfg.get("endpoint_cooldown_sec", 60))
+        now = time.monotonic()
+
         endpoints = list(cfg.get("endpoints", []))
+
+        # Filter out disabled endpoints
+        endpoints = [ep for ep in endpoints if ep.get("enabled", True)]
+
         if prefer_vision and image_b64:
             endpoints = (
                 [ep for ep in endpoints if endpoint_supports_vision(ep)]
                 + [ep for ep in endpoints if not endpoint_supports_vision(ep)]
             )
+
+        # Check if every enabled endpoint is in cooldown
+        all_cooling = True
+        any_enabled = False
         for ep in endpoints:
             name = ep.get("name", ep.get("url", "?"))
+            any_enabled = True
+            cd_until = self._cooldown.get(name, 0.0)
+            if cd_until > now:
+                continue
+            all_cooling = False
+            break
+
+        if any_enabled and all_cooling:
+            raise RuntimeError(
+                f"All enabled endpoints in cooldown for {cooldown_sec:.0f}s; "
+                f"retry after cooldown"
+            )
+
+        for ep in endpoints:
+            name = ep.get("name", ep.get("url", "?"))
+
+            # Skip endpoints in cooldown
+            cd_until = self._cooldown.get(name, 0.0)
+            now = time.monotonic()
+            if cd_until > now:
+                log(f"LLM: '{name}' skipping (cooldown until +{cd_until - now:.1f}s)")
+                continue
+
             if on_status:
                 try:
                     on_status(name)
@@ -713,16 +799,28 @@ class LLMClient:
                     prefer_vision=prefer_vision,
                 )
                 log(f"LLM: '{name}' returned {len(result)} chars")
-                if not extract_answer(result):
-                    raise RuntimeError(f"Model returned invalid/incomplete response: {result!r}")
-                
-                # Endpoint promotion disabled to ensure fast primary models stay first
+                if not self._complete_answer(result):
+                    raise RuntimeError(f"Model returned invalid/incomplete response")
 
+                # Success: clear cooldown for this endpoint
+                self._cooldown.pop(name, None)
                 return result, name
             except Exception as e:
-                log(f"LLM: '{name}' failed: {e}")
+                log(f"LLM: '{name}' failed: {type(e).__name__}")
+                self._cooldown[name] = time.monotonic() + cooldown_sec
                 last_err = e
-        raise RuntimeError(f"All endpoints failed. Last error: {last_err}")
+
+        raise RuntimeError(f"All endpoints failed. Last error type: {type(last_err).__name__}")
+
+    @staticmethod
+    def _complete_answer(content: str) -> bool:
+        """A preview may be partial; a successful response must be complete JSON."""
+        try:
+            obj = json.loads(content.strip())
+            answer = obj.get("answer") if isinstance(obj, dict) else None
+            return isinstance(answer, str) and bool(re.fullmatch(r"[A-E]\)\s+\S.*", answer.strip(), re.DOTALL))
+        except (ValueError, TypeError):
+            return False
 
     def _stream_one(
         self,
@@ -733,15 +831,26 @@ class LLMClient:
         image_b64: Optional[str] = None,
         prefer_vision: bool = False,
     ) -> str:
-        url = ep["url"]
+        # Resolve URL: env override takes precedence
+        url_env = ep.get("url_env")
+        if url_env:
+            url = os.environ.get(url_env) or ep["url"]
+        else:
+            url = ep["url"]
+
         model = ep["model"]
         name = ep.get("name", url)
-        max_retries = ep.get("max_retries", 1)
+        max_retries = ep.get("max_retries", 0)
         is_deepseek = "deepseek" in model.lower() and "api.deepseek.com" in url.lower()
 
+        # Resolve keys BEFORE attempts
         api_keys = endpoint_api_keys(cfg, ep)
         if not api_keys:
             raise RuntimeError(f"no API keys available for '{name}'")
+
+        # Overall per-endpoint wall budget starts BEFORE HTTP request
+        total_timeout_sec = float(ep.get("total_timeout_sec", 10))
+        deadline = time.monotonic() + total_timeout_sec
 
         supports_vision = endpoint_supports_vision(ep)
         prompt_text = "" if (prefer_vision and image_b64 and supports_vision) else text
@@ -759,7 +868,7 @@ class LLMClient:
         else:
             user_content = user_prompt_instruction
 
-        token_limit = max(int(cfg.get("max_tokens", 1000)), 2048)
+        token_limit = max(128, int(cfg.get("max_tokens", 512)))
 
         # Build payload (shared across all key attempts for this endpoint)
         payload: dict[str, Any] = {
@@ -777,11 +886,19 @@ class LLMClient:
         }
         if ep.get("supports_response_format", True):
             payload["response_format"] = {"type": "json_object"}
+
         # DeepSeek reasoner-specific parameters
         if is_deepseek and "reasoner" in model.lower():
             payload["max_tokens"] = max(token_limit, 4096)
             payload.pop("response_format", None)
             payload.pop("temperature", None)
+
+        # Optional payload_overrides: merge except protected keys
+        overrides = ep.get("payload_overrides")
+        if overrides:
+            for k, v in overrides.items():
+                if k not in ("model", "messages", "stream"):
+                    payload[k] = v
 
         # Base headers (auth filled in per-key below)
         base_headers: dict[str, str] = {
@@ -798,36 +915,43 @@ class LLMClient:
 
         last_err = "unknown"
         for api_key in api_keys:
+            # Check remaining wall budget before each key attempt
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                last_err = "wall budget exhausted before request"
+                break
+
             headers = {**base_headers, "Authorization": f"Bearer {api_key}"}
 
             for attempt in range(max_retries + 1):
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    last_err = "wall budget exhausted"
+                    break
+
+                # Connect timeout: min(3, remaining); Read timeout: min(ep_read, remaining)
+                ep_read = float(ep.get("timeout_sec", remaining))
+                connect_to = min(3.0, remaining)
+                read_to = min(ep_read, remaining)
+                if read_to <= 0:
+                    last_err = "wall budget exhausted (read timeout <= 0)"
+                    break
+
+                r = None
                 try:
-                    # 3 s connect timeout; endpoint-specific read timeout for TTFT
-                    timeout_sec = ep.get("timeout_sec", 15)
                     r = self.session.post(
                         url, json=payload, headers=headers,
-                        stream=True, timeout=(3.0, float(timeout_sec)),
+                        stream=True, timeout=(connect_to, read_to),
                     )
                     if r.status_code < 400:
-                        # Track content and reasoning separately.
-                        # Reasoning (DeepSeek thinking trace) is never shown to the user
-                        # or returned as the final result — it would corrupt extraction.
                         accumulated_content = ""
                         seen_content = False
-                        total_deadline = time.monotonic() + max(float(timeout_sec) * 2, 20.0)
-                        idle_timeout = max(float(timeout_sec), 15.0)
-                        last_activity = time.monotonic()
-                        for raw_line in r.iter_lines():
+                        for raw_line in r.iter_lines(chunk_size=1):
                             now = time.monotonic()
-                            if now > total_deadline:
-                                log(f"LLM: '{name}' exceeded total stream deadline, failing over")
-                                raise TimeoutError(f"Stream exceeded total deadline")
-                            if now - last_activity > idle_timeout:
-                                log(f"LLM: '{name}' stalled for {idle_timeout}s without data, failing over")
-                                raise TimeoutError(f"Stream stalled without data")
+                            if now >= deadline:
+                                raise TimeoutError(f"stream exceeded wall budget")
                             if not raw_line:
                                 continue
-                            last_activity = now
                             line = raw_line.decode("utf-8", errors="replace")
                             if not line.startswith("data: "):
                                 continue
@@ -837,15 +961,13 @@ class LLMClient:
                             try:
                                 obj = json.loads(data)
                                 if "error" in obj:
-                                    raise RuntimeError(f"mid-stream error: {obj['error']}")
+                                    raise RuntimeError("mid-stream error")
                                 choices = obj.get("choices") or []
                                 if not choices:
                                     continue
                                 delta = choices[0].get("delta") or {}
                                 content = delta.get("content") or ""
-                                # reasoning_content (DeepSeek) is intentionally ignored:
-                                # it leaks raw thinking tokens ({8228, <think>…) that
-                                # break extract_answer and confuse the user.
+                                # reasoning_content (DeepSeek) intentionally ignored
                                 if content:
                                     accumulated_content = (
                                         content if not seen_content
@@ -853,41 +975,45 @@ class LLMClient:
                                     )
                                     seen_content = True
                                     on_chunk(accumulated_content, name)
+                                    # Early exit once extract_answer succeeds
+                                    if self._complete_answer(accumulated_content):
+                                        return accumulated_content
                             except (json.JSONDecodeError, IndexError, TypeError):
                                 pass
+
                         if accumulated_content:
                             return accumulated_content
                         last_err = "empty response from model"
                     elif r.status_code in (401, 403, 429):
-                        last_err = f"HTTP {r.status_code}: {r.text[:200]}"
+                        last_err = f"HTTP {r.status_code}"
                         log(f"LLM: '{name}' HTTP {r.status_code}, rotating key")
-                        break  # try next key; no point retrying same key
+                        break  # try next key within shared deadline
                     elif r.status_code >= 500:
-                        last_err = f"server error {r.status_code}"
+                        last_err = f"HTTP {r.status_code}"
                         log(f"LLM: '{name}' server error {r.status_code}")
-                        if attempt < max_retries:
-                            time.sleep(2 ** attempt)
-                            continue
                         break
                     else:
-                        last_err = f"HTTP {r.status_code}: {r.text[:200]}"
+                        last_err = f"HTTP {r.status_code}"
                         break
                 except requests.exceptions.Timeout:
-                    last_err = f"timeout (TTFT/chunk delay exceeded {timeout_sec} s)"
+                    last_err = "timeout"
                     log(f"LLM: '{name}' timed out")
-                    if attempt < max_retries:
-                        time.sleep(2 ** attempt)
-                        continue
                     break
-                except requests.exceptions.ConnectionError as e:
-                    last_err = f"connection error: {str(e)[:120]}"
+                except requests.exceptions.ConnectionError:
+                    last_err = "connection error"
                     log(f"LLM: '{name}' connection error")
-                    if attempt < max_retries:
-                        time.sleep(2 ** attempt)
-                        continue
                     break
+                except TimeoutError:
+                    last_err = "stream wall budget exceeded"
+                    raise
+                except RuntimeError:
+                    raise
+                finally:
+                    if r is not None:
+                        r.close()
 
         raise RuntimeError(f"all keys failed for '{name}': {last_err}")
+
 
 
 # ---------------------------------------------------------------------------
@@ -1311,19 +1437,9 @@ class App:
             suppress_key = True if is_menu_key else False
 
             try:
-                keyboard.add_hotkey(hotkey_str, lambda: self._events.put("ocr"), suppress=suppress_key)
+                keyboard.add_hotkey(hotkey_str, lambda: self._events.put("ocr"), suppress=suppress_key, trigger_on_release=is_menu_key)
             except Exception as e:
                 log(f"Failed to bind {hotkey_str}: {e}")
-
-            # Also register apps/menu aliases so all Windows keyboard drivers catch it
-            if is_menu_key:
-                for alt_m in ("apps", "menu"):
-                    if alt_m != hotkey_str.lower():
-                        try:
-                            keyboard.add_hotkey(alt_m, lambda: self._events.put("ocr"), suppress=True)
-                            log(f"Registered complementary menu hotkey: {alt_m}")
-                        except Exception:
-                            pass
 
             # If user configured > or ., also bind the alternate (alt+. and alt+shift+. / alt+>)
             if ">" in hotkey_str or "period" in hotkey_str or "." in hotkey_str:
@@ -1371,6 +1487,12 @@ class App:
         try:
             while True:
                 ev = self._events.get_nowait()
+                if ev == "ocr":
+                    _now = time.monotonic()
+                    if _now - getattr(self, '_last_ocr_event', float('-inf')) < 1.5:
+                        log("Duplicate OCR hotkey ignored")
+                        continue
+                    self._last_ocr_event = _now
                 release_modifier_keys()
                 if ev == "ocr":
                     self._do_ocr()
@@ -1485,7 +1607,7 @@ class App:
                 combined_confidence,
                 self.cfg,
             )
-            prefer_vision = not ocr_usable
+            prefer_vision = cfg.get("vision_enabled", True) and not ocr_usable
             log(
                 f"Scroll OCR quality: usable={ocr_usable} ({ocr_reason}); "
                 f"strategy={'vision-first' if prefer_vision else 'text-first'}"
@@ -1628,7 +1750,7 @@ class App:
                     combined_confidence,
                     self.cfg,
                 )
-                prefer_vision = not ocr_usable
+                prefer_vision = cfg.get("vision_enabled", True) and not ocr_usable
                 log(
                     f"Auto-scroll: {len(segments)} segments, "
                     f"{combined.width}x{combined.height}px, "
@@ -1693,7 +1815,7 @@ class App:
                 log(f"OCR warning: {e}")
 
         ocr_usable, ocr_reason = assess_ocr_quality(text, ocr_confidence, cfg)
-        prefer_vision = bool(image_b64) and not ocr_usable
+        prefer_vision = cfg.get("vision_enabled", True) and bool(image_b64) and not ocr_usable
         log(
             f"OCR quality: usable={ocr_usable} ({ocr_reason}); "
             f"strategy={'vision-first' if prefer_vision else 'text-first'}"

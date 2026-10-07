@@ -5,3 +5,7 @@ __pycache__/
 .env.*
 !.env.example
 keys.cmd
+
+# Machine-specific update backups and staging
+.updates/
+tests/config.template.json

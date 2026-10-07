@@ -1,3 +1,5 @@
+> Historical audit: as of 2026-10-02 the default is text-only. See README.md and SURFACEBOOK_RECOVERY_2026-10-02.md for the current policy. Adaptive vision remains available for opt-in.
+
 # OCR vs vision audit — 2026-09-27
 
 ## Decision

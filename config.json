@@ -26,34 +26,128 @@
   "ocr_min_option_markers": 3,
   "doppler_project": "ichabod",
   "system_prompt": "You are a master academic answer-key assistant across all college disciplines: Mathematics, Calculus, Statistics, Business, Finance, Accounting, Marketing, Law, History, Economics, Psychology, Natural Sciences, and Literature.\n\nInstructions:\n1. Solve problems step by step mentally. For math and logic, calculate exact numbers and verify arithmetic.\n2. Pay strict attention to negative question stems (e.g. 'Which is NOT...', 'All of the following EXCEPT...').\n3. Compare all options against each other to identify the definitively correct choice.\n4. Output ONLY valid JSON in this exact format (start directly with '{' and no markdown ticks):\n\n{\"answer\": \"<letter>) <answer text>\"}\n\nWhere <letter> is one of A, B, C, D, E and <answer text> is the complete text of the winning option.",
-  "max_tokens": 2048,
+  "max_tokens": 512,
   "temperature": 0.2,
   "endpoints": [
     {
-      "name": "yolo-auto-flash",
-      "url": "https://yolo-auto.com/v1/chat/completions",
-      "model": "qwen3.8-flash",
+      "name": "omniroute-copilot-mini",
+      "url": "http://100.122.158.123:20128/v1/chat/completions",
+      "url_env": "OMNIROUTE_CHAT_URL",
+      "model": "github/gpt-4o-mini",
       "key_env": [
-        "YOLO_AUTO_API_KEY_2",
-        "YOLO_AUTO_API_KEY"
+        "OMNIROUTE_API_KEY"
       ],
-      "timeout_sec": 10,
-      "max_retries": 1,
+      "timeout_sec": 4,
+      "total_timeout_sec": 6,
+      "max_retries": 0,
       "supports_response_format": false,
-      "supports_vision": false
+      "supports_vision": false,
+      "enabled": true
     },
     {
-      "name": "yolo-auto-small",
+      "name": "yolo-auto-flash",
       "url": "https://yolo-auto.com/v1/chat/completions",
-      "model": "yolo-small",
+      "model": "qwen3.8-27b",
       "key_env": [
         "YOLO_AUTO_API_KEY_2",
         "YOLO_AUTO_API_KEY"
       ],
-      "timeout_sec": 10,
-      "max_retries": 1,
+      "timeout_sec": 4,
+      "max_retries": 0,
       "supports_response_format": false,
-      "supports_vision": false
+      "supports_vision": false,
+      "total_timeout_sec": 6,
+      "enabled": true
+    },
+    {
+      "name": "omniroute-copilot-gemini-flash",
+      "url": "http://100.122.158.123:20128/v1/chat/completions",
+      "url_env": "OMNIROUTE_CHAT_URL",
+      "model": "github/gemini-3.7-flash",
+      "key_env": [
+        "OMNIROUTE_API_KEY"
+      ],
+      "timeout_sec": 4,
+      "total_timeout_sec": 6,
+      "max_retries": 0,
+      "supports_response_format": false,
+      "supports_vision": false,
+      "enabled": true
+    },
+    {
+      "name": "omniroute-antigravity-lite",
+      "url": "http://100.122.158.123:20128/v1/chat/completions",
+      "url_env": "OMNIROUTE_CHAT_URL",
+      "model": "antigravity/gemini-3.1-flash-lite",
+      "key_env": [
+        "OMNIROUTE_API_KEY"
+      ],
+      "timeout_sec": 4,
+      "total_timeout_sec": 6,
+      "max_retries": 0,
+      "supports_response_format": false,
+      "supports_vision": false,
+      "enabled": true
+    },
+    {
+      "name": "omniroute-antigravity-flash",
+      "url": "http://100.122.158.123:20128/v1/chat/completions",
+      "url_env": "OMNIROUTE_CHAT_URL",
+      "model": "antigravity/gemini-3.5-flash-lite",
+      "key_env": [
+        "OMNIROUTE_API_KEY"
+      ],
+      "timeout_sec": 4,
+      "total_timeout_sec": 6,
+      "max_retries": 0,
+      "supports_response_format": false,
+      "supports_vision": false,
+      "enabled": true
+    },
+    {
+      "name": "omniroute-copilot-gpt5-mini",
+      "url": "http://100.122.158.123:20128/v1/chat/completions",
+      "url_env": "OMNIROUTE_CHAT_URL",
+      "model": "github/gpt-5-mini",
+      "key_env": [
+        "OMNIROUTE_API_KEY"
+      ],
+      "timeout_sec": 6,
+      "total_timeout_sec": 9,
+      "max_retries": 0,
+      "supports_response_format": false,
+      "supports_vision": false,
+      "enabled": false
+    },
+    {
+      "name": "omniroute-yolo",
+      "url": "http://100.122.158.123:20128/v1/chat/completions",
+      "url_env": "OMNIROUTE_CHAT_URL",
+      "model": "yolo-auto/qwen3.8-27b",
+      "key_env": [
+        "OMNIROUTE_API_KEY"
+      ],
+      "timeout_sec": 6,
+      "total_timeout_sec": 9,
+      "max_retries": 0,
+      "supports_response_format": false,
+      "supports_vision": false,
+      "enabled": false
+    },
+    {
+      "name": "omniroute-ollama-cloud",
+      "url": "http://100.122.158.123:20128/v1/chat/completions",
+      "url_env": "OMNIROUTE_CHAT_URL",
+      "model": "ollama-cloud/glm-5.3-flash",
+      "key_env": [
+        "OMNIROUTE_API_KEY"
+      ],
+      "timeout_sec": 6,
+      "total_timeout_sec": 9,
+      "max_retries": 0,
+      "supports_response_format": false,
+      "supports_vision": false,
+      "enabled": false
     },
     {
       "name": "gemini-flash",
@@ -63,10 +157,12 @@
         "GEMINI_API_KEY",
         "GEMINI_FLASH_KEY_2"
       ],
-      "timeout_sec": 15,
-      "max_retries": 1,
+      "timeout_sec": 6,
+      "max_retries": 0,
       "supports_response_format": true,
-      "supports_vision": true
+      "supports_vision": true,
+      "total_timeout_sec": 9,
+      "enabled": false
     },
     {
       "name": "openai-gpt-4o-mini",
@@ -75,10 +171,12 @@
       "key_env": [
         "OPENAI_API_KEY"
       ],
-      "timeout_sec": 15,
-      "max_retries": 1,
+      "timeout_sec": 6,
+      "max_retries": 0,
       "supports_response_format": true,
-      "supports_vision": true
+      "supports_vision": true,
+      "total_timeout_sec": 9,
+      "enabled": false
     },
     {
       "name": "nvidia-llama-3.2-11b-vision",
@@ -87,10 +185,12 @@
       "key_env": [
         "NVIDIA_API_KEY"
       ],
-      "timeout_sec": 15,
-      "max_retries": 1,
+      "timeout_sec": 6,
+      "max_retries": 0,
       "supports_response_format": true,
-      "supports_vision": true
+      "supports_vision": true,
+      "total_timeout_sec": 9,
+      "enabled": false
     },
     {
       "name": "nvidia-nemotron-lightning",
@@ -99,22 +199,15 @@
       "key_env": [
         "NVIDIA_API_KEY"
       ],
-      "timeout_sec": 15,
-      "max_retries": 1,
-      "supports_response_format": true,
-      "supports_vision": false
-    },
-    {
-      "name": "omniroute-gemini-fast",
-      "url": "http://192.168.1.200:20128/v1/chat/completions",
-      "model": "gemini-2.5-flash",
-      "key_env": [
-        "OMNIROUTE_API_KEY"
-      ],
-      "timeout_sec": 15,
+      "timeout_sec": 6,
       "max_retries": 0,
-      "supports_response_format": false,
-      "supports_vision": false
+      "supports_response_format": true,
+      "supports_vision": false,
+      "total_timeout_sec": 9,
+      "enabled": false
     }
-  ]
+  ],
+  "endpoint_cooldown_sec": 60,
+  "routing_version": 3,
+  "vision_enabled": false
 }

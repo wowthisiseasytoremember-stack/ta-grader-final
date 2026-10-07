@@ -5,7 +5,10 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = (ROOT / "TA_Grader.py").read_text(encoding="utf-8")
-CONFIG = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
+CONFIG_PATH = ROOT / "tests" / "config.template.json"
+if not CONFIG_PATH.exists():
+    CONFIG_PATH = ROOT / "config.json"
+CONFIG = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
 
 
 class ContractTests(unittest.TestCase):
@@ -15,15 +18,7 @@ class ContractTests(unittest.TestCase):
     def test_endpoint_order(self):
         self.assertEqual(
             [ep["name"] for ep in CONFIG["endpoints"]],
-            [
-                "yolo-auto-flash",
-                "yolo-auto-small",
-                "gemini-flash",
-                "openai-gpt-4o-mini",
-                "nvidia-llama-3.2-11b-vision",
-                "nvidia-nemotron-lightning",
-                "omniroute-gemini-fast",
-            ],
+            ['omniroute-copilot-mini', 'yolo-auto-flash', 'omniroute-copilot-gemini-flash', 'omniroute-antigravity-lite', 'omniroute-antigravity-flash', 'omniroute-copilot-gpt5-mini', 'omniroute-yolo', 'omniroute-ollama-cloud', 'gemini-flash', 'openai-gpt-4o-mini', 'nvidia-llama-3.2-11b-vision', 'nvidia-nemotron-lightning'],
         )
 
     def test_all_endpoints_declare_vision_capability(self):
