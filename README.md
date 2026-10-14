@@ -4,7 +4,7 @@ Canonical Windows desktop app source: [GitHub repository](https://github.com/wow
 
 ## Model order
 
-1. `gemini-flash` (`gemini-2.5-flash` direct API) — ~0.93s, generous free quota, vision support
+1. `omniroute-copilot-gemini-flash` (`github/gemini-3.7-flash` via OmniRoute Copilot) — ~1.0s, unmetered, low reasoning, vision support
 2. `yolo-auto-flash` (`qwen3.8-flash` via `yolo-auto.com`) — ~1.2s, thinking disabled, free builder tier
 3. `omniroute-copilot-sonnet-5` (`github/claude-sonnet-5`) — ~1.0s, high accuracy backup across logic & math
 4. `xai-grok-reasoning` (`grok-4.20-0309-reasoning`) — ~4.8s, reasoning enabled for complex logic

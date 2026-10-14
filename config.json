@@ -1,9 +1,9 @@
 {
   "fixed_ocr_region": [
-    5,
-    352,
-    1030,
-    1237
+    12,
+    340,
+    1028,
+    1248
   ],
   "scroll_region": null,
   "auto_scroll_region": null,
@@ -30,18 +30,21 @@
   "temperature": 0.2,
   "endpoints": [
     {
-      "name": "gemini-flash",
-      "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-      "model": "gemini-2.5-flash",
+      "name": "omniroute-copilot-gemini-flash",
+      "url": "http://100.122.158.123:20128/v1/chat/completions",
+      "url_env": "OMNIROUTE_CHAT_URL",
+      "model": "github/gemini-3.7-flash",
       "key_env": [
-        "GEMINI_FLASH_KEY_2",
-        "GEMINI_API_KEY"
+        "OMNIROUTE_API_KEY"
       ],
-      "timeout_sec": 8,
-      "total_timeout_sec": 12,
-      "max_retries": 1,
-      "supports_response_format": true,
+      "timeout_sec": 6,
+      "total_timeout_sec": 9,
+      "max_retries": 0,
+      "supports_response_format": false,
       "supports_vision": true,
+      "payload_overrides": {
+        "reasoning_effort": "low"
+      },
       "enabled": true
     },
     {

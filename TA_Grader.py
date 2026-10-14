@@ -690,8 +690,8 @@ def assess_ocr_quality(
         return False, f"confidence {confidence:.1f} < {min_conf:.1f}"
 
     markers = {
-        m.group(1).upper()
-        for m in re.finditer(r"(?m)^\s*([A-Ea-e])[\)\.:]\s+", text)
+        m.group(1).upper().replace("¢", "C").replace("©", "C")
+        for m in re.finditer(r"(?m)^\s*([A-Ea-e¢©])(?:[\)\.:]|[\.\)][\)\.]?)\s+", text)
     }
     min_markers = int(cfg.get("ocr_min_option_markers", 3))
     if len(text.splitlines()) >= 4 and len(markers) < min_markers:
