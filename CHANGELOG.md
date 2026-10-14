@@ -52,11 +52,12 @@ See `docs/OCR_VISION_AUDIT_2026-09-27.md`.
 - YOLO Auto optimization: configured `payload_overrides` with `chat_template_kwargs: {"enable_thinking": false}` on `qwen3.8-flash` via `yolo-auto.com` to bypass 40s reasoning stalls and return responses in ~1.2s.
 
 ### Routing Hierarchy
-1. `xai-grok-fast` (`grok-4.20-0309-non-reasoning` via xAI API): ~0.27s response, instant factual/humanities recall, vision supported.
-2. `gemini-flash` (`gemini-2.5-flash` direct API): ~0.93s, generous free tier, vision supported.
-3. `omniroute-copilot-sonnet-5` (`github/claude-sonnet-5` via OmniRoute): ~1.0s, high accuracy backup.
+1. `gemini-flash` (`gemini-2.5-flash` direct API): ~0.93s, generous quota, vision supported.
+2. `omniroute-copilot-sonnet-5` (`github/claude-sonnet-5` via OmniRoute): ~1.0s, high accuracy across critical thinking, logic & math.
+3. `xai-grok-reasoning` (`grok-4.20-0309-reasoning` via xAI API): ~4.8s, reasoning model for complex formal logic.
 4. `yolo-auto-flash` (`qwen3.8-flash` via `yolo-auto.com`): ~1.2s fast fallback on the free builder tier.
 5. `opencode-deepseek-vision` (`deepseek-v4-flash-vision-exp` via OpenCode Go): ~1.6s, native vision.
 6. `omniroute-copilot-gpt5.4` (`github/gpt-5.4` via OmniRoute): ~3.1s, full reasoning model.
+
 
 
