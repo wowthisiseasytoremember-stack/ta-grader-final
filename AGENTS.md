@@ -17,11 +17,12 @@ All screen capture modes use the same adaptive policy:
 Clipboard input remains text-first because it is already machine-readable.
 
 ## Endpoint priority
-1. `omniroute-copilot-sonnet-5` (`github/claude-sonnet-5`) — ~1.0s, high accuracy on college math & vision
-2. `yolo-auto-flash` (`qwen3.8-flash` via `yolo-auto.com`) — ~1.2s, thinking disabled, free builder tier
-3. `opencode-deepseek-vision` (`deepseek-v4-flash-vision-exp` via OpenCode Go) — ~1.6s, native vision
-4. `omniroute-copilot-gpt5.4` (`github/gpt-5.4`) — ~3.1s full reasoning fallback
-5. `gemini-flash` (`gemini-2.5-flash` direct API) — ~2.1s independent vision fallback
+1. `xai-grok-fast` (`grok-4.20-0309-non-reasoning`) — ~0.27s instant response for text/humanities, vision support
+2. `gemini-flash` (`gemini-2.5-flash` direct API) — ~0.93s, generous free tier, vision support
+3. `omniroute-copilot-sonnet-5` (`github/claude-sonnet-5`) — ~1.0s, high accuracy backup
+4. `yolo-auto-flash` (`qwen3.8-flash` via `yolo-auto.com`) — ~1.2s, thinking disabled, free builder tier
+5. `opencode-deepseek-vision` (`deepseek-v4-flash-vision-exp` via OpenCode Go) — ~1.6s, native vision
+6. `omniroute-copilot-gpt5.4` (`github/gpt-5.4`) — ~3.1s full reasoning fallback
 
 ## Hotkeys
 - `menu` / `apps` — fixed region

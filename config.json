@@ -30,6 +30,35 @@
   "temperature": 0.2,
   "endpoints": [
     {
+      "name": "xai-grok-fast",
+      "url": "https://api.x.ai/v1/chat/completions",
+      "model": "grok-4.20-0309-non-reasoning",
+      "key_env": [
+        "XAI_API_KEY"
+      ],
+      "timeout_sec": 5,
+      "total_timeout_sec": 7,
+      "max_retries": 0,
+      "supports_response_format": true,
+      "supports_vision": true,
+      "enabled": true
+    },
+    {
+      "name": "gemini-flash",
+      "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+      "model": "gemini-2.5-flash",
+      "key_env": [
+        "GEMINI_API_KEY",
+        "GEMINI_FLASH_KEY_2"
+      ],
+      "timeout_sec": 6,
+      "total_timeout_sec": 9,
+      "max_retries": 1,
+      "supports_response_format": true,
+      "supports_vision": true,
+      "enabled": true
+    },
+    {
       "name": "omniroute-copilot-sonnet-5",
       "url": "http://100.122.158.123:20128/v1/chat/completions",
       "url_env": "OMNIROUTE_CHAT_URL",
@@ -125,21 +154,6 @@
       "enabled": false
     },
     {
-      "name": "gemini-flash",
-      "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-      "model": "gemini-2.5-flash",
-      "key_env": [
-        "GEMINI_API_KEY",
-        "GEMINI_FLASH_KEY_2"
-      ],
-      "timeout_sec": 20,
-      "max_retries": 1,
-      "supports_response_format": true,
-      "supports_vision": true,
-      "total_timeout_sec": 30,
-      "enabled": true
-    },
-    {
       "name": "omniroute-generalist",
       "url": "http://100.122.158.123:20128/v1/chat/completions",
       "url_env": "OMNIROUTE_CHAT_URL",
@@ -153,20 +167,6 @@
       "supports_response_format": false,
       "supports_vision": false,
       "enabled": true
-    },
-    {
-      "name": "xai-grok-fast",
-      "url": "https://api.x.ai/v1/chat/completions",
-      "model": "grok-4.20-0309-non-reasoning",
-      "key_env": [
-        "XAI_API_KEY"
-      ],
-      "timeout_sec": 6,
-      "total_timeout_sec": 8,
-      "max_retries": 0,
-      "supports_response_format": true,
-      "supports_vision": true,
-      "enabled": false
     },
     {
       "name": "opencode-go-mimo-v2.6-flash",
