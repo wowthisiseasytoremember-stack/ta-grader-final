@@ -1,4 +1,8 @@
 __pycache__/
 *.pyc
 *.log
-.env
+*.bak*
+.updates/
+.env*
+!.env.example
+keys.cmd

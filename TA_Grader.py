@@ -47,7 +47,7 @@ if env_path.exists():
 import requests
 import keyboard
 import pytesseract
-from PIL import ImageGrab
+from PIL import Image, ImageGrab
 import tkinter as tk
 from tkinter import messagebox
 
@@ -135,91 +135,175 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "overlay_font_size": 18,
     "max_overlay_width_px": 620,
     "max_overlay_height_px": 280,
-    "tesseract_path": r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+    "tesseract_path": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe",
     "tesseract_psm": 6,
+    "ocr_min_confidence": 75.0,
+    "ocr_min_option_markers": 3,
     "doppler_project": "ichabod",
     "system_prompt": PERSONA,
-    "max_tokens": 1000,
+    "max_tokens": 512,
     "temperature": 0.2,
     "endpoints": [
         {
             "name": "yolo-auto-flash",
             "url": "https://yolo-auto.com/v1/chat/completions",
-            "model": "qwen3.8-flash",
-            "key_env": ["YOLO_AUTO_API_KEY", "YOLO_API_KEY"],
-            "timeout_sec": 10,
-            "max_retries": 1,
+            "model": "qwen3.8-27b",
+            "key_env": [
+                "YOLO_AUTO_API_KEY_2",
+                "YOLO_AUTO_API_KEY"
+            ],
+            "timeout_sec": 5,
+            "max_retries": 0,
             "supports_response_format": False,
             "supports_vision": False,
+            "total_timeout_sec": 8
         },
         {
-            "name": "yolo-auto-small",
-            "url": "https://yolo-auto.com/v1/chat/completions",
-            "model": "yolo-small",
-            "key_env": ["YOLO_AUTO_API_KEY", "YOLO_API_KEY"],
-            "timeout_sec": 10,
-            "max_retries": 1,
+            "name": "omniroute-copilot-mini",
+            "url": "http://192.168.1.200:20128/v1/chat/completions",
+            "url_env": "OMNIROUTE_CHAT_URL",
+            "model": "github/gpt-4o-mini",
+            "key_env": [
+                "OMNIROUTE_API_KEY"
+            ],
+            "timeout_sec": 6,
+            "total_timeout_sec": 9,
+            "max_retries": 0,
             "supports_response_format": False,
             "supports_vision": False,
+            "enabled": True
+        },
+        {
+            "name": "omniroute-antigravity-lite",
+            "url": "http://192.168.1.200:20128/v1/chat/completions",
+            "url_env": "OMNIROUTE_CHAT_URL",
+            "model": "antigravity/gemini-3.1-flash-lite",
+            "key_env": [
+                "OMNIROUTE_API_KEY"
+            ],
+            "timeout_sec": 8,
+            "total_timeout_sec": 12,
+            "max_retries": 0,
+            "supports_response_format": False,
+            "supports_vision": True,
+            "enabled": True
+        },
+        {
+            "name": "omniroute-copilot-gpt5-mini",
+            "url": "http://192.168.1.200:20128/v1/chat/completions",
+            "url_env": "OMNIROUTE_CHAT_URL",
+            "model": "github/gpt-5-mini",
+            "key_env": [
+                "OMNIROUTE_API_KEY"
+            ],
+            "timeout_sec": 6,
+            "total_timeout_sec": 9,
+            "max_retries": 0,
+            "supports_response_format": False,
+            "supports_vision": False,
+            "enabled": True
+        },
+        {
+            "name": "omniroute-antigravity-flash",
+            "url": "http://192.168.1.200:20128/v1/chat/completions",
+            "url_env": "OMNIROUTE_CHAT_URL",
+            "model": "antigravity/gemini-3.5-flash-lite",
+            "key_env": [
+                "OMNIROUTE_API_KEY"
+            ],
+            "timeout_sec": 8,
+            "total_timeout_sec": 12,
+            "max_retries": 0,
+            "supports_response_format": False,
+            "supports_vision": True,
+            "enabled": True
+        },
+        {
+            "name": "omniroute-yolo",
+            "url": "http://192.168.1.200:20128/v1/chat/completions",
+            "url_env": "OMNIROUTE_CHAT_URL",
+            "model": "yolo-auto/qwen3.8-27b",
+            "key_env": [
+                "OMNIROUTE_API_KEY"
+            ],
+            "timeout_sec": 6,
+            "total_timeout_sec": 9,
+            "max_retries": 0,
+            "supports_response_format": False,
+            "supports_vision": False,
+            "enabled": True
+        },
+        {
+            "name": "omniroute-ollama-cloud",
+            "url": "http://192.168.1.200:20128/v1/chat/completions",
+            "url_env": "OMNIROUTE_CHAT_URL",
+            "model": "ollama-cloud/glm-5.3-flash",
+            "key_env": [
+                "OMNIROUTE_API_KEY"
+            ],
+            "timeout_sec": 6,
+            "total_timeout_sec": 9,
+            "max_retries": 0,
+            "supports_response_format": False,
+            "supports_vision": False,
+            "enabled": False
         },
         {
             "name": "gemini-flash",
             "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
             "model": "gemini-2.5-flash",
-            "key_env": ["GEMINI_API_KEY", "GEMINI_FLASH_KEY_2"],
-            "timeout_sec": 15,
-            "max_retries": 1,
+            "key_env": [
+                "GEMINI_API_KEY",
+                "GEMINI_FLASH_KEY_2"
+            ],
+            "timeout_sec": 6,
+            "max_retries": 0,
             "supports_response_format": True,
+            "supports_vision": True,
+            "total_timeout_sec": 9
         },
         {
             "name": "openai-gpt-4o-mini",
             "url": "https://api.openai.com/v1/chat/completions",
             "model": "gpt-4o-mini",
-            "key_env": ["OPENAI_API_KEY"],
-            "timeout_sec": 15,
-            "max_retries": 1,
+            "key_env": [
+                "OPENAI_API_KEY"
+            ],
+            "timeout_sec": 6,
+            "max_retries": 0,
             "supports_response_format": True,
             "supports_vision": True,
+            "total_timeout_sec": 9
         },
         {
             "name": "nvidia-llama-3.2-11b-vision",
             "url": "https://integrate.api.nvidia.com/v1/chat/completions",
             "model": "meta/llama-3.2-11b-vision-instruct",
-            "key_env": ["NVIDIA_API_KEY"],
-            "timeout_sec": 15,
-            "max_retries": 1,
+            "key_env": [
+                "NVIDIA_API_KEY"
+            ],
+            "timeout_sec": 6,
+            "max_retries": 0,
             "supports_response_format": True,
             "supports_vision": True,
-        },
-        {
-            "name": "nvidia-phi-3-vision",
-            "url": "https://integrate.api.nvidia.com/v1/chat/completions",
-            "model": "microsoft/phi-3-vision-128k-instruct",
-            "key_env": ["NVIDIA_API_KEY"],
-            "timeout_sec": 15,
-            "max_retries": 1,
-            "supports_response_format": True,
-            "supports_vision": True,
+            "total_timeout_sec": 9
         },
         {
             "name": "nvidia-nemotron-lightning",
             "url": "https://integrate.api.nvidia.com/v1/chat/completions",
             "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
-            "key_env": ["NVIDIA_API_KEY"],
-            "timeout_sec": 15,
-            "max_retries": 1,
-            "supports_response_format": True,
-        },
-        {
-            "name": "omniroute-gemini-fast",
-            "url": "http://192.168.1.200:20128/v1/chat/completions",
-            "model": "gemini-2.5-flash",
-            "key_env": ["OMNIROUTE_API_KEY"],
-            "timeout_sec": 15,
+            "key_env": [
+                "NVIDIA_API_KEY"
+            ],
+            "timeout_sec": 6,
             "max_retries": 0,
-            "supports_response_format": False,
-        },
+            "supports_response_format": True,
+            "supports_vision": False,
+            "total_timeout_sec": 9
+        }
     ],
+    "endpoint_cooldown_sec": 60,
+    "routing_version": 2
 }
 
 
@@ -252,6 +336,10 @@ def load_config() -> dict[str, Any]:
         log("Config migrated: primary/fallback → flat endpoints list")
 
     merged: dict[str, Any] = {**DEFAULT_CONFIG, **cfg}
+    active = [ep for ep in merged.get("endpoints", []) if ep.get("enabled", True)]
+    log(f"Loaded config {CONFIG_PATH}; enabled order=" + ", ".join(
+        f"{ep.get('name', '?')}[{ep.get('model', '?')}]" for ep in active
+    ))
 
     # OCR path setup with auto-detection fallback
     tpath = merged.get("tesseract_path", "")
@@ -281,13 +369,14 @@ def load_config() -> dict[str, Any]:
 # Keyring — Doppler first, env var fallback
 # ---------------------------------------------------------------------------
 
-def doppler_get(project: str, key_name: str) -> Optional[str]:
+def doppler_get(project: str, key_name: str, config: str = "") -> Optional[str]:
     """Try to fetch a secret from Doppler. Returns None on any failure."""
     if not project:
         return None
     try:
         r = subprocess.run(
-            ["doppler", "secrets", "get", "--plain", key_name, "-p", project],
+            ["doppler", "secrets", "get", "--plain", key_name, "-p", project]
+            + (["-c", config] if config else []),
             capture_output=True, text=True, timeout=10,
         )
         if r.returncode == 0:
@@ -303,46 +392,86 @@ def doppler_get(project: str, key_name: str) -> Optional[str]:
     return None
 
 
+_SECRET_CACHE: dict[str, Optional[str]] = {}
+
+
 def get_api_key(cfg: dict[str, Any], key_name: str) -> Optional[str]:
-    """Fetch key_name from Doppler (if configured), then env var."""
-    project = (cfg.get("doppler_project") or "").strip()
-    v = doppler_get(project, key_name)
-    if v:
-        return v
-    v = os.environ.get(key_name, "")
-    return v.strip() if v and v.strip() else None
+    """Fetch and cache a secret without ever storing it inside cfg."""
+    if key_name in _SECRET_CACHE:
+        return _SECRET_CACHE[key_name]
+
+    env_v = os.environ.get(key_name, "")
+    value = env_v.strip() if env_v and env_v.strip() else None
+    if not value:
+        project = (cfg.get("doppler_project") or "").strip()
+        value = doppler_get(project, key_name, (cfg.get("doppler_config") or "").strip())
+
+    _SECRET_CACHE[key_name] = value
+    return value
 
 
-def endpoint_api_key(cfg: dict[str, Any], ep: dict[str, Any]) -> Optional[str]:
-    """Return the first working API key for this endpoint, or None."""
-    key_envs = ep.get("key_env")
-    if not key_envs:
-        return None
+def endpoint_api_keys(cfg: dict[str, Any], ep: dict[str, Any]) -> list[str]:
+    """Return all configured, available, de-duplicated keys for an endpoint."""
+    key_envs = ep.get("key_env") or []
     if isinstance(key_envs, str):
         key_envs = [key_envs]
-    for k in key_envs:
-        v = get_api_key(cfg, k)
-        if v:
-            return v
-    return None
+
+    keys: list[str] = []
+    seen: set[str] = set()
+    for key_name in key_envs:
+        value = get_api_key(cfg, key_name)
+        if value and value not in seen:
+            keys.append(value)
+            seen.add(value)
+    return keys
 
 
 def verify_all_keys(cfg: dict[str, Any]) -> None:
-    """Fail-fast: ensure at least one endpoint has a working key.
-    Caches the resolved key per endpoint in ep['_verified_key']."""
+    """Fail fast if no endpoint has a key, without mutating config with secrets."""
     endpoints = cfg.get("endpoints", [])
     working = 0
     errors: list[str] = []
     for ep in endpoints:
-        key = endpoint_api_key(cfg, ep)
-        if key:
-            ep["_verified_key"] = key
+        keys = endpoint_api_keys(cfg, ep)
+        if keys:
             working += 1
-            log(f"key OK for '{ep.get('name', '?')}' (tried {ep.get('key_env')})")
+            log(
+                f"key OK for '{ep.get('name', '?')}' "
+                f"({len(keys)} available; names={ep.get('key_env')})"
+            )
         else:
             errors.append(f"  '{ep.get('name', '?')}': no key (tried {ep.get('key_env')})")
     if working == 0:
         raise RuntimeError("No endpoints have working API keys:\n" + "\n".join(errors))
+
+
+def endpoint_supports_vision(ep: dict[str, Any]) -> bool:
+    explicit = ep.get("supports_vision")
+    if explicit is not None:
+        return bool(explicit)
+    url = str(ep.get("url", "")).lower()
+    model = str(ep.get("model", "")).lower()
+    return (
+        "generativelanguage.googleapis.com" in url
+        or "gpt-4o" in model
+        or "claude" in model
+    )
+
+
+def config_for_disk(cfg: dict[str, Any]) -> dict[str, Any]:
+    """Strip runtime-only fields recursively before persisting config."""
+    def clean(value: Any) -> Any:
+        if isinstance(value, dict):
+            return {
+                k: clean(v)
+                for k, v in value.items()
+                if not str(k).startswith("_")
+            }
+        if isinstance(value, list):
+            return [clean(v) for v in value]
+        return value
+
+    return clean(cfg)
 
 
 # ---------------------------------------------------------------------------
@@ -457,7 +586,7 @@ def clean_question_text(text: str) -> str:
 
     t = text.replace("\r", "").strip()
     # Join hyphenated words split across line breaks
-    t = re.sub(r"(\w+)-\n+(\w+)", r"\1\2", t)
+    t = re.sub(r"([A-Za-z]+)-\n+([A-Za-z]+)", r"\1\2", t)
     # Normalize excessive blank lines (max 2 consecutive newlines)
     t = re.sub(r"\n{3,}", "\n\n", t)
     # Clean whitespace per line without collapsing lines into one another
@@ -466,105 +595,182 @@ def clean_question_text(text: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# OCR — thread-safe
+# OCR / capture — one screen grab shared by text and vision paths
 # ---------------------------------------------------------------------------
 
-def ocr_region(x: int, y: int, w: int, h: int, psm: int = 6) -> str:
-    """OCR a screen region. Falls back from psm 6 to psm 3 on empty result."""
-    img = ImageGrab.grab(bbox=(x, y, x + w, y + h)).convert("L")
-    txt = pytesseract.image_to_string(img, config=f"--psm {psm}").strip()
-    # Strip \r characters that Windows Tesseract adds to every line
-    txt = txt.replace("\r", "")
-    if not txt and psm == 6:
-        txt = pytesseract.image_to_string(img, config="--psm 3").strip().replace("\r", "")
-        if txt:
-            log(f"OCR: psm6 empty; psm3 returned {len(txt)} chars")
-    return txt
+def capture_region_image(x: int, y: int, w: int, h: int) -> Image.Image:
+    """Capture a region once so OCR and vision inspect the same frame."""
+    return ImageGrab.grab(bbox=(x, y, x + w, y + h)).convert("RGB")
 
 
-def capture_region_base64(x: int, y: int, w: int, h: int) -> str:
-    """Capture screen region and return JPEG image as base64 string."""
-    img = ImageGrab.grab(bbox=(x, y, x + w, y + h)).convert("RGB")
+def image_to_base64(img: Image.Image) -> str:
+    """Encode a captured frame for a vision-capable endpoint."""
     buf = io.BytesIO()
-    img.save(buf, format="JPEG", quality=85)
+    img.save(buf, format="JPEG", quality=85, optimize=False)
     return base64.b64encode(buf.getvalue()).decode("utf-8")
 
 
-def capture_scroll_region(x: int, y: int, w: int, h: int, scroll_pause: float = 0.5) -> tuple[Optional[str], Optional[str]]:
-    """
-    Capture a tall region by taking multiple screenshots while user scrolls down.
-    User presses Enter to capture each segment, Escape to finish.
-    Returns (combined_base64, combined_ocr_text) or (None, None) if cancelled.
-    """
-    import keyboard
-    
+def ocr_image(img: Image.Image, psm: int = 6) -> tuple[str, float]:
+    """OCR one image and return reconstructed text plus mean word confidence."""
+    def run(psm_value: int) -> tuple[str, float]:
+        data = pytesseract.image_to_data(
+            img.convert("L"),
+            config=f"--psm {psm_value}",
+            output_type=pytesseract.Output.DICT,
+        )
+        lines: list[str] = []
+        words: list[str] = []
+        confidences: list[float] = []
+        current_line: Optional[tuple[int, int, int]] = None
+
+        for i, raw_word in enumerate(data.get("text", [])):
+            word = str(raw_word).strip()
+            if not word:
+                continue
+            key = (
+                int(data["block_num"][i]),
+                int(data["par_num"][i]),
+                int(data["line_num"][i]),
+            )
+            if current_line is not None and key != current_line and words:
+                lines.append(" ".join(words))
+                words = []
+            current_line = key
+            words.append(word)
+            try:
+                conf = float(data["conf"][i])
+                if conf >= 0:
+                    confidences.append(conf)
+            except (TypeError, ValueError):
+                pass
+
+        if words:
+            lines.append(" ".join(words))
+        text = "\n".join(lines).replace("\r", "").strip()
+        confidence = sum(confidences) / len(confidences) if confidences else 0.0
+        return text, confidence
+
+    text, confidence = run(psm)
+    if not text and psm == 6:
+        text, confidence = run(3)
+        if text:
+            log(f"OCR: psm6 empty; psm3 returned {len(text)} chars")
+    return text, confidence
+
+
+def assess_ocr_quality(
+    text: str,
+    confidence: float,
+    cfg: dict[str, Any],
+) -> tuple[bool, str]:
+    """Decide whether OCR is trustworthy enough for text-only fast endpoints."""
+    if not text.strip():
+        return False, "empty OCR"
+
+    # Mean OCR confidence cannot validate fractions, radicals or minus signs.
+    # Prefer the original frame for math lessons even when surrounding prose is clear.
+    if re.search(
+        r"\b(math|mathematics|algebra|algebraic|arithmetic|calculus|geometry|trigonometry|"
+        r"rational|irrational|evaluate|expression|equation|inequality|inequalities|"
+        r"fraction|exponent|polynomial|quadratic|sequence|sequences|series|"
+        r"absolute\s+value|subtracting|multiplying|dividing)\b"
+        r"|[√∛∑∫²³≤≥]"
+        r"|<=|>="
+        r"|\|[^|\n]+\|"
+        r"|\d\s*[-+*/=^<>≤≥]\s*[(\d]"
+        r"|\b[a-z]\s*[+*/=^<>≤≥]\s*[\da-z(]"
+        r"|\b[a-z]\s+-\s+[\da-z(]"
+        r"|[\d)]\s*[-+*/=^<>≤≥]\s*[a-z]\b",
+        text, re.IGNORECASE,
+    ):
+        return False, "math notation requires visual verification"
+
+    min_conf = float(cfg.get("ocr_min_confidence", 75.0))
+    if confidence < min_conf:
+        return False, f"confidence {confidence:.1f} < {min_conf:.1f}"
+
+    markers = {
+        m.group(1).upper()
+        for m in re.finditer(r"(?m)^\s*([A-Ea-e])[\)\.:]\s+", text)
+    }
+    min_markers = int(cfg.get("ocr_min_option_markers", 3))
+    if len(text.splitlines()) >= 4 and len(markers) < min_markers:
+        return False, f"only {len(markers)} option markers found"
+
+    return True, f"confidence {confidence:.1f}, markers={len(markers)}"
+
+
+def stitch_images(images: list[Image.Image]) -> Image.Image:
+    """Stack captured viewports vertically without re-decoding JPEGs."""
+    total_h = sum(img.height for img in images)
+    max_w = max(img.width for img in images)
+    combined = Image.new("RGB", (max_w, total_h), "white")
+    y_offset = 0
+    for img in images:
+        combined.paste(img, (0, y_offset))
+        y_offset += img.height
+    return combined
+
+
+def capture_scroll_region(
+    x: int,
+    y: int,
+    w: int,
+    h: int,
+    scroll_pause: float = 0.5,
+) -> tuple[Optional[str], Optional[str], float]:
+    """Capture manual scroll segments using one grab per segment."""
     print("Scroll Capture Mode: Press ENTER to capture each segment, ESC to finish and process")
-    
-    segments = []
-    ocr_segments = []
-    
+    segments: list[Image.Image] = []
+    ocr_segments: list[str] = []
+    confidences: list[float] = []
+
     try:
         while True:
-            # Wait for Enter or Escape
             event = keyboard.read_event(suppress=True)
-            if event.event_type == keyboard.KEY_DOWN:
-                if event.name == "enter":
-                    # Capture current view
-                    img_b64 = capture_region_base64(x, y, w, h)
-                    segments.append(img_b64)
-                    
-                    # OCR this segment
-                    txt = ocr_region(x, y, w, h)
-                    if txt.strip():
-                        ocr_segments.append(txt.strip())
-                    
-                    print(f"  Captured segment {len(segments)} ({len(txt)} chars)")
-                    time.sleep(scroll_pause)
-                    
-                elif event.name == "esc":
-                    print("  Finished scroll capture")
-                    break
+            if event.event_type != keyboard.KEY_DOWN:
+                continue
+            if event.name == "enter":
+                img = capture_region_image(x, y, w, h)
+                segments.append(img)
+                txt, confidence = ocr_image(img)
+                if txt.strip():
+                    ocr_segments.append(txt.strip())
+                if confidence > 0:
+                    confidences.append(confidence)
+                print(
+                    f"  Captured segment {len(segments)} "
+                    f"({len(txt)} chars, OCR confidence {confidence:.1f})"
+                )
+                time.sleep(scroll_pause)
+            elif event.name == "esc":
+                print("  Finished scroll capture")
+                break
     except Exception as e:
         log(f"Scroll capture error: {e}")
-        return None, None
-    
+        return None, None, 0.0
+
     if not segments:
-        return None, None
-    
-    # Combine images vertically
+        return None, None, 0.0
+
     try:
-        images = []
-        for b64 in segments:
-            img_data = base64.b64decode(b64)
-            img = Image.open(io.BytesIO(img_data)).convert("RGB")
-            images.append(img)
-        
-        # Stitch vertically
-        total_h = sum(img.height for img in images)
-        max_w = max(img.width for img in images)
-        combined = Image.new("RGB", (max_w, total_h), "white")
-        
-        y_offset = 0
-        for img in images:
-            combined.paste(img, (0, y_offset))
-            y_offset += img.height
-        
-        # Save combined as base64
-        buf = io.BytesIO()
-        combined.save(buf, format="JPEG", quality=85)
-        combined_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
-        
-        # Combine OCR text
-        combined_ocr = "\n\n".join(ocr_segments)
-        combined_ocr = clean_question_text(combined_ocr)
-        
-        log(f"Scroll capture: {len(segments)} segments, {combined.width}x{combined.height}px, {len(combined_ocr)} chars OCR")
-        return combined_b64, combined_ocr
-        
+        combined = stitch_images(segments)
+        combined_b64 = image_to_base64(combined)
+        combined_ocr = clean_question_text("\n\n".join(ocr_segments))
+        combined_confidence = (
+            sum(confidences) / len(confidences) if confidences else 0.0
+        )
+        log(
+            f"Scroll capture: {len(segments)} segments, "
+            f"{combined.width}x{combined.height}px, "
+            f"{len(combined_ocr)} chars OCR, confidence={combined_confidence:.1f}"
+        )
+        return combined_b64, combined_ocr, combined_confidence
     except Exception as e:
         log(f"Failed to stitch scroll capture: {e}")
-        # Fallback: return first segment only
-        return segments[0], ocr_segments[0] if ocr_segments else ""
+        first_text = ocr_segments[0] if ocr_segments else ""
+        first_conf = confidences[0] if confidences else 0.0
+        return image_to_base64(segments[0]), first_text, first_conf
 
 
 # ---------------------------------------------------------------------------
@@ -577,6 +783,8 @@ class LLMClient:
 
     def __init__(self) -> None:
         self.session = requests.Session()
+        self._cooldown: dict[str, float] = {}
+        self._copilot_lock = threading.Lock()
 
     def stream(
         self,
@@ -585,31 +793,96 @@ class LLMClient:
         on_chunk: Callable[[str, str], None],
         image_b64: Optional[str] = None,
         on_status: Optional[Callable[[str], None]] = None,
+        prefer_vision: bool = False,
     ) -> tuple[str, str]:
-        """Try each endpoint in order.
-        on_chunk(accumulated_text, endpoint_name) fires as text arrives.
-        Returns (final_text, endpoint_name). Raises RuntimeError if all fail."""
+        """Try configured order, promoting vision endpoints only when OCR is weak."""
         last_err: Any = "no endpoints configured"
-        for ep in cfg.get("endpoints", []):
+        if not cfg.get("vision_enabled", True):
+            image_b64 = None
+            prefer_vision = False
+        cooldown_sec = float(cfg.get("endpoint_cooldown_sec", 60))
+        now = time.monotonic()
+
+        endpoints = list(cfg.get("endpoints", []))
+
+        # Filter out disabled endpoints
+        endpoints = [ep for ep in endpoints if ep.get("enabled", True)]
+
+        if prefer_vision and image_b64:
+            endpoints = (
+                [ep for ep in endpoints if endpoint_supports_vision(ep)]
+                + [ep for ep in endpoints if not endpoint_supports_vision(ep)]
+            )
+
+        # Check if every enabled endpoint is in cooldown
+        all_cooling = True
+        any_enabled = False
+        for ep in endpoints:
             name = ep.get("name", ep.get("url", "?"))
+            any_enabled = True
+            cd_until = self._cooldown.get(name, 0.0)
+            if cd_until > now:
+                continue
+            all_cooling = False
+            break
+
+        if any_enabled and all_cooling:
+            raise RuntimeError(
+                f"All enabled endpoints in cooldown for {cooldown_sec:.0f}s; "
+                f"retry after cooldown"
+            )
+
+        for ep in endpoints:
+            name = ep.get("name", ep.get("url", "?"))
+            url_env = ep.get("url_env")
+            effective_url = os.environ.get(url_env) if url_env else None
+            log(f"LLM: trying '{name}' model={ep.get('model', '?')!r} url={(effective_url or ep.get('url', '?'))!r}")
+
+            # Skip endpoints in cooldown
+            cd_until = self._cooldown.get(name, 0.0)
+            now = time.monotonic()
+            if cd_until > now:
+                log(f"LLM: '{name}' skipping (cooldown until +{cd_until - now:.1f}s)")
+                continue
+
             if on_status:
                 try:
                     on_status(name)
                 except Exception:
                     pass
             try:
-                result = self._stream_one(text, cfg, ep, on_chunk, image_b64=image_b64)
+                result = self._stream_one(
+                    text, cfg, ep, on_chunk,
+                    image_b64=image_b64,
+                    prefer_vision=prefer_vision,
+                )
                 log(f"LLM: '{name}' returned {len(result)} chars")
-                if not extract_answer(result):
-                    raise RuntimeError(f"Model returned invalid/incomplete response: {result!r}")
-                
-                # Endpoint promotion disabled to ensure fast primary models stay first
+                if not self._complete_answer(result):
+                    log(f"LLM: '{name}' response rejected by complete-answer validation: {result[:300]!r}")
+                    raise RuntimeError("Model returned invalid/incomplete response")
 
+                # Success: clear cooldown for this endpoint
+                self._cooldown.pop(name, None)
                 return result, name
             except Exception as e:
-                log(f"LLM: '{name}' failed: {e}")
+                log(f"LLM: '{name}' failed: {type(e).__name__}")
+                self._cooldown[name] = time.monotonic() + cooldown_sec
                 last_err = e
-        raise RuntimeError(f"All endpoints failed. Last error: {last_err}")
+
+        raise RuntimeError(f"All endpoints failed. Last error type: {type(last_err).__name__}")
+
+    @staticmethod
+    def _complete_answer(content: str) -> bool:
+        """Accept only a complete JSON answer; incomplete stream prefixes must fall through."""
+        try:
+            obj = json.loads(content.strip())
+            if isinstance(obj, dict):
+                answer = obj.get("answer")
+                if isinstance(answer, (str, int, float)) and str(answer).strip():
+                    return True
+        except (ValueError, TypeError):
+            pass
+        return False
 
     def _stream_one(
         self,
@@ -618,41 +891,43 @@ class LLMClient:
         ep: dict[str, Any],
         on_chunk: Callable[[str, str], None],
         image_b64: Optional[str] = None,
+        prefer_vision: bool = False,
     ) -> str:
-        url = ep["url"]
+        if ep.get("transport") == "github-copilot-sdk":
+            return self._stream_copilot_sdk(
+                text, cfg, ep, on_chunk,
+                image_b64=image_b64,
+                prefer_vision=prefer_vision,
+            )
+
+        # Resolve URL: env override takes precedence
+        url_env = ep.get("url_env")
+        if url_env:
+            url = os.environ.get(url_env) or ep["url"]
+        else:
+            url = ep["url"]
+
         model = ep["model"]
         name = ep.get("name", url)
-        max_retries = ep.get("max_retries", 1)
+        max_retries = ep.get("max_retries", 0)
         is_deepseek = "deepseek" in model.lower() and "api.deepseek.com" in url.lower()
 
-        # Resolve key list once: prefer cached _verified_key from startup check
-        if ep.get("_verified_key"):
-            api_keys: list[str] = [ep["_verified_key"]]
-        else:
-            envs = ep.get("key_env", [])
-            if isinstance(envs, str):
-                envs = [envs]
-            api_keys = [k for env in envs if (k := (get_api_key(cfg, env) or ""))]
-
+        # Resolve keys BEFORE attempts
+        api_keys = endpoint_api_keys(cfg, ep)
         if not api_keys:
             raise RuntimeError(f"no API keys available for '{name}'")
 
-        # Build user message content: vision format if image provided and supported
+        # Overall per-endpoint wall budget starts BEFORE HTTP request
+        total_timeout_sec = float(ep.get("total_timeout_sec", 10))
+        deadline = time.monotonic() + total_timeout_sec
+
+        supports_vision = endpoint_supports_vision(ep)
+        prompt_text = "" if (prefer_vision and image_b64 and supports_vision) else text
         user_prompt_instruction = (
-            (text + "\n\n" if text else "") +
+            (prompt_text + "\n\n" if prompt_text else "") +
             "Solve the multiple-choice question shown. Remember: Output ONLY the JSON object. "
             "Do not include any introduction or markdown. Start directly with '{'."
         )
-
-        supports_vision = ep.get("supports_vision")
-        if supports_vision is None:
-            # Auto-detect vision support for known providers/models
-            supports_vision = (
-                "generativelanguage.googleapis.com" in url.lower()
-                or "gemini" in model.lower()
-                or "gpt-4o" in model.lower()
-                or "claude" in model.lower()
-            )
 
         if image_b64 and supports_vision:
             user_content: Any = [
@@ -662,7 +937,7 @@ class LLMClient:
         else:
             user_content = user_prompt_instruction
 
-        token_limit = max(int(cfg.get("max_tokens", 1000)), 2048)
+        token_limit = max(128, int(cfg.get("max_tokens", 512)))
 
         # Build payload (shared across all key attempts for this endpoint)
         payload: dict[str, Any] = {
@@ -680,57 +955,72 @@ class LLMClient:
         }
         if ep.get("supports_response_format", True):
             payload["response_format"] = {"type": "json_object"}
+
         # DeepSeek reasoner-specific parameters
         if is_deepseek and "reasoner" in model.lower():
             payload["max_tokens"] = max(token_limit, 4096)
             payload.pop("response_format", None)
             payload.pop("temperature", None)
 
+        # Optional payload_overrides: merge except protected keys
+        overrides = ep.get("payload_overrides")
+        if overrides:
+            for k, v in overrides.items():
+                if k not in ("model", "messages", "stream"):
+                    payload[k] = v
+
         # Base headers (auth filled in per-key below)
         base_headers: dict[str, str] = {
             "Content-Type": "application/json",
-            "User-Agent": "curl/7.88.1",
+            "User-Agent": "TA-Grader/1.0",
         }
         if "openrouter.ai" in url.lower():
             base_headers["HTTP-Referer"] = "https://github.com/justinryan/ta-grader"
             base_headers["X-Title"] = "TA Grader"
         if "opencode.ai" in url.lower():
-            base_headers["x-session-id"] = str(uuid.uuid4())
+            base_headers["x-opencode-session"] = str(uuid.uuid4())
         if ep.get("headers"):
             base_headers.update(ep["headers"])
 
         last_err = "unknown"
         for api_key in api_keys:
+            # Check remaining wall budget before each key attempt
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                last_err = "wall budget exhausted before request"
+                break
+
             headers = {**base_headers, "Authorization": f"Bearer {api_key}"}
 
             for attempt in range(max_retries + 1):
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    last_err = "wall budget exhausted"
+                    break
+
+                # Connect timeout: min(3, remaining); Read timeout: min(ep_read, remaining)
+                ep_read = float(ep.get("timeout_sec", remaining))
+                connect_to = min(3.0, remaining)
+                read_to = min(ep_read, remaining)
+                if read_to <= 0:
+                    last_err = "wall budget exhausted (read timeout <= 0)"
+                    break
+
+                r = None
                 try:
-                    # 3 s connect timeout; endpoint-specific read timeout for TTFT
-                    timeout_sec = ep.get("timeout_sec", 15)
                     r = self.session.post(
                         url, json=payload, headers=headers,
-                        stream=True, timeout=(3.0, float(timeout_sec)),
+                        stream=True, timeout=(connect_to, read_to),
                     )
                     if r.status_code < 400:
-                        # Track content and reasoning separately.
-                        # Reasoning (DeepSeek thinking trace) is never shown to the user
-                        # or returned as the final result — it would corrupt extraction.
                         accumulated_content = ""
                         seen_content = False
-                        total_deadline = time.time() + max(float(timeout_sec) * 3, 45.0)
-                        idle_timeout = max(float(timeout_sec), 15.0)
-                        last_activity = time.time()
-                        for raw_line in r.iter_lines():
-                            now = time.time()
-                            if now > total_deadline:
-                                log(f"LLM: '{name}' exceeded total stream deadline, failing over")
-                                raise TimeoutError(f"Stream exceeded total deadline")
-                            if now - last_activity > idle_timeout:
-                                log(f"LLM: '{name}' stalled for {idle_timeout}s without data, failing over")
-                                raise TimeoutError(f"Stream stalled without data")
+                        for raw_line in r.iter_lines(chunk_size=1):
+                            now = time.monotonic()
+                            if now >= deadline:
+                                raise TimeoutError(f"stream exceeded wall budget")
                             if not raw_line:
                                 continue
-                            last_activity = now
                             line = raw_line.decode("utf-8", errors="replace")
                             if not line.startswith("data: "):
                                 continue
@@ -740,50 +1030,151 @@ class LLMClient:
                             try:
                                 obj = json.loads(data)
                                 if "error" in obj:
-                                    raise RuntimeError(f"mid-stream error: {obj['error']}")
+                                    raise RuntimeError("mid-stream error")
                                 choices = obj.get("choices") or []
                                 if not choices:
                                     continue
                                 delta = choices[0].get("delta") or {}
                                 content = delta.get("content") or ""
-                                # reasoning_content (DeepSeek) is intentionally ignored:
-                                # it leaks raw thinking tokens ({8228, <think>…) that
-                                # break extract_answer and confuse the user.
+                                # reasoning_content (DeepSeek) intentionally ignored
                                 if content:
                                     accumulated_content = (
                                         content if not seen_content
                                         else accumulated_content + content
                                     )
                                     seen_content = True
+                                    # Preview every non-empty response. The caller keeps
+                                    # the last output visible even if it is malformed.
                                     on_chunk(accumulated_content, name)
                             except (json.JSONDecodeError, IndexError, TypeError):
                                 pass
+
                         if accumulated_content:
                             return accumulated_content
                         last_err = "empty response from model"
                     elif r.status_code in (401, 403, 429):
-                        last_err = f"HTTP {r.status_code}: {r.text[:200]}"
+                        last_err = f"HTTP {r.status_code}"
                         log(f"LLM: '{name}' HTTP {r.status_code}, rotating key")
-                        break  # try next key; no point retrying same key
+                        break  # try next key within shared deadline
                     elif r.status_code >= 500:
-                        last_err = f"server error {r.status_code}"
-                        log(f"LLM: '{name}' server error {r.status_code}")
+                        detail = (r.text or "").replace("\n", " ")[:300]
+                        last_err = f"HTTP {r.status_code}: {detail}"
+                        log(f"LLM: '{name}' server error {last_err}")
                         break
                     else:
-                        last_err = f"HTTP {r.status_code}: {r.text[:200]}"
+                        last_err = f"HTTP {r.status_code}"
+                        break
                 except requests.exceptions.Timeout:
-                    last_err = f"timeout (TTFT/chunk delay exceeded {timeout_sec} s)"
-                    log(f"LLM: '{name}' timed out, rotating key")
+                    last_err = "timeout"
+                    log(f"LLM: '{name}' timed out")
                     break
-                except requests.exceptions.ConnectionError as e:
-                    last_err = f"connection error: {str(e)[:120]}"
-                    log(f"LLM: '{name}' connection error, rotating key")
+                except requests.exceptions.ConnectionError:
+                    last_err = "connection error"
+                    log(f"LLM: '{name}' connection error")
                     break
-
-                if attempt < max_retries:
-                    time.sleep(2 ** attempt)
+                except TimeoutError:
+                    last_err = "stream wall budget exceeded"
+                    raise
+                except RuntimeError:
+                    raise
+                finally:
+                    if r is not None:
+                        r.close()
 
         raise RuntimeError(f"all keys failed for '{name}': {last_err}")
+
+    def _stream_copilot_sdk(
+        self,
+        text: str,
+        cfg: dict[str, Any],
+        ep: dict[str, Any],
+        on_chunk: Callable[[str, str], None],
+        image_b64: Optional[str] = None,
+        prefer_vision: bool = False,
+    ) -> str:
+        """Stream a response through the official GitHub Copilot SDK."""
+        import asyncio
+        from copilot import CopilotClient
+        from copilot.session_events import AssistantMessageData, AssistantMessageDeltaData
+
+        name = ep.get("name", "github-copilot-sdk")
+        api_keys = endpoint_api_keys(cfg, ep)
+        if not api_keys:
+            raise RuntimeError(f"no API keys available for '{name}'")
+
+        supports_vision = endpoint_supports_vision(ep)
+        prompt_text = "" if (prefer_vision and image_b64 and supports_vision) else text
+        user_prompt = (
+            (prompt_text + "\n\n" if prompt_text else "")
+            + "Solve the multiple-choice question shown. Remember: Output ONLY the JSON object. "
+            + "Do not include any introduction or markdown. Start directly with '{'."
+        )
+        if image_b64 and supports_vision:
+            user_prompt += f"\n\nImage (JPEG base64): {image_b64}"
+
+        async def run(token: str) -> str:
+            client = CopilotClient(
+                github_token=token,
+                use_logged_in_user=False,
+                mode="empty",
+                base_directory=str(Path(tempfile.gettempdir()) / "TA-Grader-Copilot"),
+            )
+            try:
+                await client.start()
+                session = await client.create_session(
+                    model=ep.get("model", "gpt-5-mini"),
+                    streaming=True,
+                    available_tools=[],
+                    enable_session_store=False,
+                    system_message={"mode": "replace", "content": cfg["system_prompt"]},
+                )
+                accumulated = ""
+
+                def handle_event(event: Any) -> None:
+                    nonlocal accumulated
+                    data = getattr(event, "data", None)
+                    if isinstance(data, AssistantMessageDeltaData) and data.delta_content:
+                        accumulated += data.delta_content
+                        on_chunk(accumulated, name)
+
+                session.on(handle_event)
+                response = await session.send_and_wait(
+                    user_prompt,
+                    timeout=float(ep.get("timeout_sec", 30)),
+                )
+                data = getattr(response, "data", None)
+                if isinstance(data, AssistantMessageData) and data.content:
+                    accumulated = data.content
+                    on_chunk(accumulated, name)
+                if not accumulated:
+                    raise RuntimeError("Copilot SDK returned an empty response")
+                return accumulated
+            finally:
+                await client.stop()
+
+        last_error: Exception | None = None
+        total_timeout = float(ep.get("total_timeout_sec", 45))
+        deadline = time.monotonic() + total_timeout
+        if not self._copilot_lock.acquire(timeout=total_timeout):
+            raise TimeoutError(f"Copilot SDK busy for more than {total_timeout:.0f}s")
+        try:
+            for token in api_keys:
+                try:
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        raise TimeoutError("Copilot SDK queue wait exhausted endpoint timeout")
+                    request_started = time.monotonic()
+                    log(f"LLM: '{name}' SDK session starting")
+                    result = asyncio.run(asyncio.wait_for(run(token), timeout=remaining))
+                    log(f"LLM: '{name}' SDK completed in {time.monotonic() - request_started:.1f}s")
+                    return result
+                except Exception as exc:
+                    last_error = exc
+                    log(f"LLM: '{name}' SDK request failed: {type(exc).__name__}")
+        finally:
+            self._copilot_lock.release()
+        raise RuntimeError(f"Copilot SDK failed for '{name}': {type(last_error).__name__}")
+
 
 
 # ---------------------------------------------------------------------------
@@ -1140,7 +1531,6 @@ class App:
     """Top-level application class. Creates all components and drives the main loop."""
 
     def __init__(self) -> None:
-        self._mutex = ensure_single_instance()
         enable_dpi_awareness()
 
         # Tk root must exist before any messagebox/Toplevel
@@ -1208,19 +1598,9 @@ class App:
             suppress_key = True if is_menu_key else False
 
             try:
-                keyboard.add_hotkey(hotkey_str, lambda: self._events.put("ocr"), suppress=suppress_key)
+                keyboard.add_hotkey(hotkey_str, lambda: self._events.put("ocr"), suppress=suppress_key, trigger_on_release=is_menu_key)
             except Exception as e:
                 log(f"Failed to bind {hotkey_str}: {e}")
-
-            # Also register apps/menu aliases so all Windows keyboard drivers catch it
-            if is_menu_key:
-                for alt_m in ("apps", "menu"):
-                    if alt_m != hotkey_str.lower():
-                        try:
-                            keyboard.add_hotkey(alt_m, lambda: self._events.put("ocr"), suppress=True)
-                            log(f"Registered complementary menu hotkey: {alt_m}")
-                        except Exception:
-                            pass
 
             # If user configured > or ., also bind the alternate (alt+. and alt+shift+. / alt+>)
             if ">" in hotkey_str or "period" in hotkey_str or "." in hotkey_str:
@@ -1268,6 +1648,12 @@ class App:
         try:
             while True:
                 ev = self._events.get_nowait()
+                if ev == "ocr":
+                    _now = time.monotonic()
+                    if _now - getattr(self, '_last_ocr_event', float('-inf')) < 1.5:
+                        log("Duplicate OCR hotkey ignored")
+                        continue
+                    self._last_ocr_event = _now
                 release_modifier_keys()
                 if ev == "ocr":
                     self._do_ocr()
@@ -1311,7 +1697,10 @@ class App:
         self.fixed_region = box
         try:
             self.cfg["fixed_ocr_region"] = list(box)
-            CONFIG_PATH.write_text(json.dumps(self.cfg, indent=2), encoding="utf-8")
+            CONFIG_PATH.write_text(
+                json.dumps(config_for_disk(self.cfg), indent=2),
+                encoding="utf-8",
+            )
             log(f"Saved fixed OCR region {box} to config.json")
         except Exception as e:
             log(f"Failed to save fixed OCR region to config.json: {e}")
@@ -1320,7 +1709,7 @@ class App:
         self._process_region(x, y, w, h)
 
     def _do_set_scroll(self) -> None:
-        """Define a dedicated scroll region (left panel) for tall questions."""
+        """Define a dedicated manual-scroll region for tall questions."""
         self.overlays.clear_all()
         box = self.selector.select()
         if not box:
@@ -1328,185 +1717,235 @@ class App:
         self.scroll_region = box
         try:
             self.cfg["scroll_region"] = list(box)
-            CONFIG_PATH.write_text(json.dumps(self.cfg, indent=2), encoding="utf-8")
+            CONFIG_PATH.write_text(
+                json.dumps(config_for_disk(self.cfg), indent=2),
+                encoding="utf-8",
+            )
             log(f"Saved scroll region {box} to config.json")
-            self.overlays.show(f"Scroll region set: {box}\n\nPress {self.cfg.get('hotkey_scroll', 'alt+shift+z')} to capture.", 
-                               box[0] + box[2], box[1], fg="#80ff80")
+            self.overlays.show(
+                f"Scroll region set: {box}\n\n"
+                f"Press {self.cfg.get('hotkey_scroll', 'alt+shift+z')} to capture.",
+                box[0] + box[2],
+                box[1],
+                fg="#80ff80",
+            )
         except Exception as e:
             log(f"Failed to save scroll region to config.json: {e}")
 
     def _do_scroll(self) -> None:
-        """Scroll capture: user scrolls and presses Enter to capture segments, ESC to finish."""
-        # Use dedicated scroll_region if set, otherwise fall back to fixed_region
+        """Manual scroll capture: ENTER each segment, ESC to finish."""
         region = self.scroll_region or self.fixed_region
         if not region:
             self._do_reselect()
             return
+
         x, y, w, h = region
         self.overlays.clear_all()
         anchor_x, anchor_y = x + w, y
-
-        placeholder = self.overlays.show("Scroll Capture: Press ENTER to capture each segment, ESC to finish", anchor_x, anchor_y, fg="#ffd080")
+        placeholder = self.overlays.show(
+            "Scroll Capture: Press ENTER to capture each segment, ESC to finish",
+            anchor_x,
+            anchor_y,
+            fg="#ffd080",
+        )
         self.status.set_dot("#ffaa00")
 
-        def worker():
-            combined_b64, combined_text = capture_scroll_region(x, y, w, h)
+        def worker() -> None:
+            combined_b64, combined_text, combined_confidence = capture_scroll_region(
+                x, y, w, h
+            )
             if not combined_b64:
-                self.root.after(0, lambda: self.overlays.update(placeholder, "Scroll capture cancelled"))
+                self.root.after(
+                    0,
+                    lambda: self.overlays.update(placeholder, "Scroll capture cancelled"),
+                )
                 self.root.after(0, lambda: self.status.set_dot("#c04040"))
                 return
 
-            # Clean up the combined text
-            if combined_text:
-                combined_text = clean_question_text(combined_text)
+            combined_text = clean_question_text(combined_text or "")
+            ocr_usable, ocr_reason = assess_ocr_quality(
+                combined_text,
+                combined_confidence,
+                self.cfg,
+            )
+            prefer_vision = self.cfg.get("vision_enabled", True) and not ocr_usable
+            log(
+                f"Scroll OCR quality: usable={ocr_usable} ({ocr_reason}); "
+                f"strategy={'vision-first' if prefer_vision else 'text-first'}"
+            )
 
             self.root.after(0, lambda: self.overlays.update(placeholder, "Thinking…"))
             self.root.after(0, lambda: self.status.set_dot("#808080"))
-
-            # Run LLM with combined image and text
             threading.Thread(
                 target=self._run_llm,
-                args=(combined_text, placeholder, anchor_x, anchor_y, combined_b64),
+                args=(
+                    combined_text,
+                    placeholder,
+                    anchor_x,
+                    anchor_y,
+                    combined_b64,
+                    prefer_vision,
+                ),
                 daemon=True,
             ).start()
 
         threading.Thread(target=worker, daemon=True).start()
 
     def _do_set_auto_scroll(self) -> None:
-        """Define X-axis bounds for auto-scroll capture (left panel vertical slice)."""
+        """Define X-axis bounds for automatic full-height scroll capture."""
         self.overlays.clear_all()
         box = self.selector.select()
         if not box:
             return
-        # Only use X bounds (left, right), ignore Y - we'll capture full height
-        x, y, w, h = box
-        # Store as (left, top, width, height) but we'll use left/right for X bounds
-        # and start from top of screen for Y
-        self.auto_scroll_region = (x, 0, w, self.root.winfo_screenheight())
+
+        x, _y, w, _h = box
+        region = (x, 0, w, self.root.winfo_screenheight())
+        self.auto_scroll_region = region
         try:
-            # Save just the X bounds (left, width) and mark as auto-scroll
-            self.cfg["auto_scroll_region"] = [x, 0, w, self.root.winfo_screenheight()]
-            CONFIG_PATH.write_text(json.dumps(self.cfg, indent=2), encoding="utf-8")
+            self.cfg["auto_scroll_region"] = list(region)
+            CONFIG_PATH.write_text(
+                json.dumps(config_for_disk(self.cfg), indent=2),
+                encoding="utf-8",
+            )
             log(f"Saved auto-scroll X bounds: left={x}, right={x+w}")
-            self.overlays.show(f"Auto-scroll X bounds set: left={x}, right={x+w}\n\nPress {self.cfg.get('hotkey_auto_scroll', 'alt+shift+a')} to auto-capture full height.", 
-                               x + w, 50, fg="#80ff80")
+            self.overlays.show(
+                f"Auto-scroll X bounds set: left={x}, right={x+w}\n\n"
+                f"Press {self.cfg.get('hotkey_auto_scroll', 'alt+shift+a')} "
+                "to auto-capture full height.",
+                x + w,
+                50,
+                fg="#80ff80",
+            )
         except Exception as e:
             log(f"Failed to save auto-scroll region to config.json: {e}")
 
     def _do_auto_scroll(self) -> None:
-        """Auto-scroll capture: programmatically scrolls down (Page Down) and captures each screenful until bottom."""
+        """Auto-scroll with Page Down until repeated frames indicate the bottom."""
         if not self.auto_scroll_region:
             self._do_set_auto_scroll()
             return
-        
-        x, y, w, h = self.auto_scroll_region
-        # Use full screen height
+
+        x, _y, w, _h = self.auto_scroll_region
         screen_h = self.root.winfo_screenheight()
-        
         self.overlays.clear_all()
         anchor_x, anchor_y = x + w, 50
 
-        placeholder = self.overlays.show("Auto-Scroll Capture: Press ESC to cancel...", anchor_x, anchor_y, fg="#ffaa00")
+        placeholder = self.overlays.show(
+            "Auto-Scroll Capture: Press ESC to cancel...",
+            anchor_x,
+            anchor_y,
+            fg="#ffaa00",
+        )
         self.status.set_dot("#ffaa00")
 
-        def worker():
-            import keyboard
-            
-            segments = []
-            ocr_segments = []
-            last_img_hash = None
+        def worker() -> None:
+            import hashlib
+
+            segments: list[Image.Image] = []
+            ocr_segments: list[str] = []
+            confidences: list[float] = []
+            last_img_hash: Optional[bytes] = None
             no_change_count = 0
-            max_no_change = 3  # Stop after 3 identical captures
-            max_segments = 50  # Safety limit
-            
+            max_no_change = 3
+            max_segments = 50
+
             try:
-                # Initial capture
-                for i in range(max_segments):
-                    # Check for ESC to cancel
+                for _ in range(max_segments):
                     if keyboard.is_pressed("esc"):
                         log("Auto-scroll cancelled by user")
                         break
-                    
-                    # Capture current viewport
-                    img_b64 = capture_region_base64(x, 0, w, screen_h)
-                    segments.append(img_b64)
-                    
-                    # OCR this segment
-                    txt = ocr_region(x, 0, w, screen_h)
+
+                    img = capture_region_image(x, 0, w, screen_h)
+                    segments.append(img)
+
+                    txt, confidence = ocr_image(
+                        img,
+                        int(self.cfg.get("tesseract_psm", 6)),
+                    )
                     if txt.strip():
                         ocr_segments.append(txt.strip())
-                    
-                    log(f"Auto-scroll: captured segment {len(segments)} ({len(txt)} chars)")
-                    
-                    # Check if content changed (simple hash comparison)
-                    import hashlib
-                    img_hash = hashlib.md5(base64.b64decode(img_b64)).hexdigest()
+                    if confidence > 0:
+                        confidences.append(confidence)
+
+                    log(
+                        f"Auto-scroll: captured segment {len(segments)} "
+                        f"({len(txt)} chars, OCR confidence={confidence:.1f})"
+                    )
+
+                    # MD5 is only a cheap frame-equality fingerprint here, not security.
+                    img_hash = hashlib.md5(img.tobytes()).digest()
                     if img_hash == last_img_hash:
                         no_change_count += 1
                         if no_change_count >= max_no_change:
-                            log(f"Auto-scroll: reached bottom (no change for {max_no_change} captures)")
+                            log(
+                                "Auto-scroll: reached bottom "
+                                f"(no change for {max_no_change} captures)"
+                            )
                             break
                     else:
                         no_change_count = 0
                     last_img_hash = img_hash
-                    
-                    # Scroll down (Page Down key)
+
                     keyboard.send("page down")
-                    time.sleep(0.6)  # Wait for scroll animation and render
-                    
+                    time.sleep(0.6)
+
                 if not segments:
-                    self.root.after(0, lambda: self.overlays.update(placeholder, "Auto-scroll capture cancelled"))
+                    self.root.after(
+                        0,
+                        lambda: self.overlays.update(
+                            placeholder, "Auto-scroll capture cancelled"
+                        ),
+                    )
                     self.root.after(0, lambda: self.status.set_dot("#c04040"))
                     return
 
-                # Stitch images vertically (same as capture_scroll_region)
-                try:
-                    images = []
-                    for b64 in segments:
-                        img_data = base64.b64decode(b64)
-                        img = Image.open(io.BytesIO(img_data)).convert("RGB")
-                        images.append(img)
-                    
-                    total_h = sum(img.height for img in images)
-                    max_w = max(img.width for img in images)
-                    combined = Image.new("RGB", (max_w, total_h), "white")
-                    
-                    y_offset = 0
-                    for img in images:
-                        combined.paste(img, (0, y_offset))
-                        y_offset += img.height
-                    
-                    buf = io.BytesIO()
-                    combined.save(buf, format="JPEG", quality=85)
-                    combined_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
-                    
-                    combined_ocr = "\n\n".join(ocr_segments)
-                    combined_ocr = clean_question_text(combined_ocr)
-                    
-                    log(f"Auto-scroll: {len(segments)} segments, {combined.width}x{combined.height}px, {len(combined_ocr)} chars OCR")
-                    
-                except Exception as e:
-                    log(f"Failed to stitch auto-scroll capture: {e}")
-                    combined_b64 = segments[0]
-                    combined_ocr = ocr_segments[0] if ocr_segments else ""
+                combined = stitch_images(segments)
+                combined_b64 = image_to_base64(combined)
+                combined_ocr = clean_question_text("\n\n".join(ocr_segments))
+                combined_confidence = (
+                    sum(confidences) / len(confidences) if confidences else 0.0
+                )
 
-                # Clean up
-                if combined_ocr:
-                    combined_ocr = clean_question_text(combined_ocr)
+                ocr_usable, ocr_reason = assess_ocr_quality(
+                    combined_ocr,
+                    combined_confidence,
+                    self.cfg,
+                )
+                prefer_vision = self.cfg.get("vision_enabled", True) and not ocr_usable
+                log(
+                    f"Auto-scroll: {len(segments)} segments, "
+                    f"{combined.width}x{combined.height}px, "
+                    f"{len(combined_ocr)} chars OCR, "
+                    f"confidence={combined_confidence:.1f}; "
+                    f"quality={ocr_reason}; "
+                    f"strategy={'vision-first' if prefer_vision else 'text-first'}"
+                )
 
-                self.root.after(0, lambda: self.overlays.update(placeholder, "Thinking…"))
+                self.root.after(
+                    0, lambda: self.overlays.update(placeholder, "Thinking…")
+                )
                 self.root.after(0, lambda: self.status.set_dot("#808080"))
-
-                # Run LLM
                 threading.Thread(
                     target=self._run_llm,
-                    args=(combined_ocr, placeholder, anchor_x, anchor_y, combined_b64),
+                    args=(
+                        combined_ocr,
+                        placeholder,
+                        anchor_x,
+                        anchor_y,
+                        combined_b64,
+                        prefer_vision,
+                    ),
                     daemon=True,
                 ).start()
 
             except Exception as e:
                 log(f"Auto-scroll error: {e}")
-                self.root.after(0, lambda: self.overlays.update(placeholder, f"Auto-scroll failed: {e}"))
+                self.root.after(
+                    0,
+                    lambda: self.overlays.update(
+                        placeholder, f"Auto-scroll failed: {e}"
+                    ),
+                )
                 self.root.after(0, lambda: self.status.set_dot("#c04040"))
 
         threading.Thread(target=worker, daemon=True).start()
@@ -1516,32 +1955,60 @@ class App:
         self.overlays.clear_all()
         anchor_x, anchor_y = x + w, y
 
+        captured: Optional[Image.Image] = None
         image_b64: Optional[str] = None
         try:
-            image_b64 = capture_region_base64(x, y, w, h)
+            captured = capture_region_image(x, y, w, h)
+            image_b64 = image_to_base64(captured)
         except Exception as e:
             log(f"Image capture warning: {e}")
 
-        # OCR fallback/supplement
         text = ""
-        try:
-            text = ocr_region(x, y, w, h, int(cfg.get("tesseract_psm", 6)))
-            text = clean_question_text(text)
-        except Exception as e:
-            log(f"OCR warning: {e}")
+        ocr_confidence = 0.0
+        if captured is not None:
+            try:
+                text, ocr_confidence = ocr_image(
+                    captured,
+                    int(cfg.get("tesseract_psm", 6)),
+                )
+                text = clean_question_text(text)
+            except Exception as e:
+                log(f"OCR warning: {e}")
+
+        ocr_usable, ocr_reason = assess_ocr_quality(text, ocr_confidence, cfg)
+        prefer_vision = cfg.get("vision_enabled", True) and bool(image_b64) and not ocr_usable
+        log(
+            f"OCR quality: usable={ocr_usable} ({ocr_reason}); "
+            f"strategy={'vision-first' if prefer_vision else 'text-first'}"
+        )
 
         if not text.strip() and not image_b64:
             self.overlays.show(
-                f"No content found in region.\n\nPress {cfg.get('hotkey_reselect', 'alt+q')} to redefine region.",
-                anchor_x, anchor_y, fg="#ffd080",
+                f"No content found in region.\n\n"
+                f"Press {cfg.get('hotkey_reselect', 'alt+q')} to redefine region.",
+                anchor_x,
+                anchor_y,
+                fg="#ffd080",
             )
             return
 
-        placeholder = self.overlays.show("Thinking…", anchor_x, anchor_y, fg="#a0c0ff")
+        placeholder = self.overlays.show(
+            "Thinking…",
+            anchor_x,
+            anchor_y,
+            fg="#a0c0ff",
+        )
         self.status.set_dot("#808080")
         threading.Thread(
             target=self._run_llm,
-            args=(text, placeholder, anchor_x, anchor_y, image_b64),
+            args=(
+                text,
+                placeholder,
+                anchor_x,
+                anchor_y,
+                image_b64,
+                prefer_vision,
+            ),
             daemon=True,
         ).start()
 
@@ -1578,6 +2045,7 @@ class App:
         anchor_x: int,
         anchor_y: int,
         image_b64: Optional[str] = None,
+        prefer_vision: bool = False,
     ) -> None:
         """Background thread. Uses root.after() for all Tk operations."""
         def on_chunk(accumulated: str, _ep: str) -> None:
@@ -1590,21 +2058,30 @@ class App:
 
         try:
             final_raw, endpoint_used = self.llm.stream(
-                text, self.cfg, on_chunk, image_b64=image_b64, on_status=on_status
+                text,
+                self.cfg,
+                on_chunk,
+                image_b64=image_b64,
+                on_status=on_status,
+                prefer_vision=prefer_vision,
             )
             final_answer = extract_answer(final_raw)
             if not final_answer:
                 # Log the full raw response so we can diagnose extraction failures
                 log(f"extract_answer failed. endpoint={endpoint_used!r} raw={final_raw!r}")
                 final_answer = "⚠ No answer found.\n\nTry selecting a larger region or re-copying the text."
-            log(f"Input question ({len(text)} chars, image={'yes' if image_b64 else 'no'}):\n{text}\n--> Answer from '{endpoint_used}': {final_answer}")
+            log(
+                f"Input question ({len(text)} chars, image={'yes' if image_b64 else 'no'}, "
+                f"strategy={'vision-first' if prefer_vision else 'text-first'}):\n"
+                f"{text}\n--> Answer from '{endpoint_used}': {final_answer}"
+            )
             self.overlays.record_last(final_answer, anchor_x, anchor_y, endpoint_used)
             self.root.after(0, lambda a=final_answer: self.overlays.update(placeholder, a))
             self.root.after(0, lambda: self.status.set_dot("#40c040"))
         except Exception as e:
             log(f"LLM error: {e}")
             self.root.after(
-                0, lambda: self.overlays.update(placeholder, f"Service unavailable — {e}")
+                0, lambda err=str(e): self.overlays.update(placeholder, f"Service unavailable — {err}")
             )
             self.root.after(0, lambda: self.status.set_dot("#c04040"))
 
@@ -1616,20 +2093,7 @@ class App:
         self.root.mainloop()
 
 
-def enforce_single_instance() -> Any:
-    if os.name == "nt":
-        import ctypes
-        kernel32 = ctypes.windll.kernel32
-        mutex_name = "Global\\TAGrader_SingleInstance_Mutex"
-        mutex = kernel32.CreateMutexW(None, False, mutex_name)
-        if kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
-            log("Another instance of TA Grader is already running. Exiting duplicate.")
-            sys.exit(0)
-        return mutex
-    return None
-
-
 if __name__ == "__main__":
-    _mutex = enforce_single_instance()
+    _mutex = ensure_single_instance()
     log(f"=== {APP_NAME} started ===")
     App().run()
