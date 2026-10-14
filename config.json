@@ -45,6 +45,26 @@
       "enabled": true
     },
     {
+      "name": "yolo-auto-flash",
+      "url": "https://yolo-auto.com/v1/chat/completions",
+      "model": "qwen3.8-flash",
+      "key_env": [
+        "YOLO_AUTO_API_KEY",
+        "YOLO_API_KEY"
+      ],
+      "timeout_sec": 10,
+      "total_timeout_sec": 15,
+      "max_retries": 1,
+      "supports_response_format": false,
+      "supports_vision": false,
+      "payload_overrides": {
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        }
+      },
+      "enabled": true
+    },
+    {
       "name": "omniroute-copilot-sonnet-5",
       "url": "http://100.122.158.123:20128/v1/chat/completions",
       "url_env": "OMNIROUTE_CHAT_URL",
@@ -71,26 +91,6 @@
       "max_retries": 0,
       "supports_response_format": true,
       "supports_vision": true,
-      "enabled": true
-    },
-    {
-      "name": "yolo-auto-flash",
-      "url": "https://yolo-auto.com/v1/chat/completions",
-      "model": "qwen3.8-flash",
-      "key_env": [
-        "YOLO_AUTO_API_KEY",
-        "YOLO_API_KEY"
-      ],
-      "timeout_sec": 10,
-      "total_timeout_sec": 15,
-      "max_retries": 1,
-      "supports_response_format": false,
-      "supports_vision": false,
-      "payload_overrides": {
-        "chat_template_kwargs": {
-          "enable_thinking": false
-        }
-      },
       "enabled": true
     },
     {
