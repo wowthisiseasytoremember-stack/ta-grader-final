@@ -4,12 +4,14 @@ Canonical Windows desktop app source: [GitHub repository](https://github.com/wow
 
 ## Model order
 
-1. `omniroute-copilot-sonnet-5` (`github/claude-sonnet-5`) — ~1.0s, high accuracy across logic, math, & vision
-2. `yolo-auto-flash` (`qwen3.8-flash` via `yolo-auto.com`) — ~1.2s, thinking disabled, free builder tier
-3. `omniroute-copilot-gemini-flash` (`github/gemini-3.7-flash` via OmniRoute Copilot) — ~3.5s, unmetered, low reasoning, vision support
-4. `xai-grok-reasoning` (`grok-4.20-0309-reasoning`) — ~4.8s, reasoning enabled for complex logic
-5. `opencode-deepseek-vision` (`deepseek-v4-flash-vision-exp` via OpenCode Go) — ~1.6s, native vision
-6. `omniroute-copilot-gpt5.4` (`github/gpt-5.4`) — ~3.1s full reasoning fallback
+1. `omniroute-copilot-gpt5.4-mini` (`github/gpt-5.4-mini`) — ~0.9s–1.4s, low/unmetered Copilot quota, native vision
+2. `omniroute-copilot-haiku` (`no-think/github/claude-haiku-4.5`) — ~0.9s, light mini quota, native vision
+3. `yolo-auto-flash` (`qwen3.8-flash` via `yolo-auto.com`) — ~1.2s, thinking disabled, free builder tier
+4. `omniroute-copilot-gemini-flash` (`github/gemini-3.7-flash` via OmniRoute Copilot) — ~3.5s, unmetered, low reasoning, vision support
+5. `omniroute-copilot-sonnet-5` (`github/claude-sonnet-5`) — ~1.0s, deep reasoning fallback reserved for difficult questions
+6. `xai-grok-reasoning` (`grok-4.20-0309-reasoning`) — ~4.8s, reasoning enabled for complex logic
+7. `opencode-deepseek-vision` (`deepseek-v4-flash-vision-exp` via OpenCode Go) — ~1.6s, native vision
+8. `omniroute-copilot-gpt5.4` (`github/gpt-5.4`) — ~3.1s full reasoning fallback
 
 
 ## Run and configure

@@ -30,15 +30,30 @@
   "temperature": 0.2,
   "endpoints": [
     {
-      "name": "omniroute-copilot-sonnet-5",
+      "name": "omniroute-copilot-gpt5.4-mini",
       "url": "http://100.122.158.123:20128/v1/chat/completions",
       "url_env": "OMNIROUTE_CHAT_URL",
-      "model": "github/claude-sonnet-5",
+      "model": "github/gpt-5.4-mini",
       "key_env": [
         "OMNIROUTE_API_KEY"
       ],
-      "timeout_sec": 6,
-      "total_timeout_sec": 9,
+      "timeout_sec": 5,
+      "total_timeout_sec": 8,
+      "max_retries": 0,
+      "supports_response_format": false,
+      "supports_vision": true,
+      "enabled": true
+    },
+    {
+      "name": "omniroute-copilot-haiku",
+      "url": "http://100.122.158.123:20128/v1/chat/completions",
+      "url_env": "OMNIROUTE_CHAT_URL",
+      "model": "no-think/github/claude-haiku-4.5",
+      "key_env": [
+        "OMNIROUTE_API_KEY"
+      ],
+      "timeout_sec": 5,
+      "total_timeout_sec": 8,
       "max_retries": 0,
       "supports_response_format": false,
       "supports_vision": true,
@@ -80,6 +95,21 @@
       "payload_overrides": {
         "reasoning_effort": "low"
       },
+      "enabled": true
+    },
+    {
+      "name": "omniroute-copilot-sonnet-5",
+      "url": "http://100.122.158.123:20128/v1/chat/completions",
+      "url_env": "OMNIROUTE_CHAT_URL",
+      "model": "github/claude-sonnet-5",
+      "key_env": [
+        "OMNIROUTE_API_KEY"
+      ],
+      "timeout_sec": 6,
+      "total_timeout_sec": 9,
+      "max_retries": 0,
+      "supports_response_format": false,
+      "supports_vision": true,
       "enabled": true
     },
     {
@@ -125,36 +155,6 @@
       "supports_response_format": false,
       "supports_vision": true,
       "enabled": true
-    },
-    {
-      "name": "omniroute-copilot-gpt5.4-mini",
-      "url": "http://100.122.158.123:20128/v1/chat/completions",
-      "url_env": "OMNIROUTE_CHAT_URL",
-      "model": "github/gpt-5.4-mini",
-      "key_env": [
-        "OMNIROUTE_API_KEY"
-      ],
-      "timeout_sec": 4,
-      "total_timeout_sec": 6,
-      "max_retries": 0,
-      "supports_response_format": false,
-      "supports_vision": true,
-      "enabled": false
-    },
-    {
-      "name": "omniroute-copilot-haiku",
-      "url": "http://100.122.158.123:20128/v1/chat/completions",
-      "url_env": "OMNIROUTE_CHAT_URL",
-      "model": "no-think/github/claude-haiku-4.5",
-      "key_env": [
-        "OMNIROUTE_API_KEY"
-      ],
-      "timeout_sec": 4,
-      "total_timeout_sec": 6,
-      "max_retries": 0,
-      "supports_response_format": false,
-      "supports_vision": true,
-      "enabled": false
     },
     {
       "name": "omniroute-generalist",
