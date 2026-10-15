@@ -693,11 +693,13 @@ def assess_ocr_quality(
         m.group(1).upper().replace("¢", "C").replace("©", "C")
         for m in re.finditer(r"(?m)^\s*([A-Ea-e¢©])(?:[\)\.:]|[\.\)][\)\.]?)\s+", text)
     }
+    bullet_count = len(re.findall(r"(?m)^\s*(?:[©®oO0•\-\*]|oO|\(\s*\)|\[\s*\])\s+\S+", text))
+    effective_markers = max(len(markers), bullet_count)
     min_markers = int(cfg.get("ocr_min_option_markers", 3))
-    if len(text.splitlines()) >= 4 and len(markers) < min_markers:
-        return False, f"only {len(markers)} option markers found"
+    if len(text.splitlines()) >= 4 and effective_markers < min_markers:
+        return False, f"only {effective_markers} option markers found"
 
-    return True, f"confidence {confidence:.1f}, markers={len(markers)}"
+    return True, f"confidence {confidence:.1f}, markers={effective_markers}"
 
 
 def stitch_images(images: list[Image.Image]) -> Image.Image:

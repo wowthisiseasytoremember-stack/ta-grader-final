@@ -1,9 +1,9 @@
 {
   "fixed_ocr_region": [
     12,
-    340,
-    1028,
-    1248
+    342,
+    1026,
+    1236
   ],
   "scroll_region": null,
   "auto_scroll_region": null,
@@ -30,10 +30,10 @@
   "temperature": 0.2,
   "endpoints": [
     {
-      "name": "omniroute-copilot-gemini-flash",
+      "name": "omniroute-copilot-sonnet-5",
       "url": "http://100.122.158.123:20128/v1/chat/completions",
       "url_env": "OMNIROUTE_CHAT_URL",
-      "model": "github/gemini-3.7-flash",
+      "model": "github/claude-sonnet-5",
       "key_env": [
         "OMNIROUTE_API_KEY"
       ],
@@ -42,9 +42,6 @@
       "max_retries": 0,
       "supports_response_format": false,
       "supports_vision": true,
-      "payload_overrides": {
-        "reasoning_effort": "low"
-      },
       "enabled": true
     },
     {
@@ -68,10 +65,10 @@
       "enabled": true
     },
     {
-      "name": "omniroute-copilot-sonnet-5",
+      "name": "omniroute-copilot-gemini-flash",
       "url": "http://100.122.158.123:20128/v1/chat/completions",
       "url_env": "OMNIROUTE_CHAT_URL",
-      "model": "github/claude-sonnet-5",
+      "model": "github/gemini-3.7-flash",
       "key_env": [
         "OMNIROUTE_API_KEY"
       ],
@@ -80,6 +77,9 @@
       "max_retries": 0,
       "supports_response_format": false,
       "supports_vision": true,
+      "payload_overrides": {
+        "reasoning_effort": "low"
+      },
       "enabled": true
     },
     {
