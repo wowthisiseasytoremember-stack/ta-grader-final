@@ -964,12 +964,19 @@ class LLMClient:
             payload.pop("response_format", None)
             payload.pop("temperature", None)
 
+        # Terra models reject temperature parameter
+        if "terra" in model.lower():
+            payload.pop("temperature", None)
+
         # Optional payload_overrides: merge except protected keys
         overrides = ep.get("payload_overrides")
         if overrides:
             for k, v in overrides.items():
                 if k not in ("model", "messages", "stream"):
-                    payload[k] = v
+                    if v is None:
+                        payload.pop(k, None)
+                    else:
+                        payload[k] = v
 
         # Base headers (auth filled in per-key below)
         base_headers: dict[str, str] = {
