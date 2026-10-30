@@ -1,3 +1,25 @@
+---
+schema: agents-md/v1
+project: ta-grader-final
+initiative: career
+family: education-tooling
+what: >-
+  Floating Windows answer-key overlay: captures a fixed region, manual scroll region,
+  auto-scroll region, or clipboard, then answers through a provider-interleaved
+  fast/fallback LLM chain (routing v3) and floats the parsed answer on screen.
+goal: >-
+  Answer every question with the fastest model that is not garbage. Knowledge-speed
+  models first, deep reasoning last (algebra is rare); provider diversity so one
+  quota outage cannot take the chain down.
+status: active
+stack: [python, tkinter, requests, tesseract-ocr, sse-streaming]
+entrypoints:
+  - TA_Grader.py
+  - config.json
+  - Run_TA_Grader.bat
+updated: '2026-10-30 03:27 UTC'
+---
+
 # AGENTS.md — TA Grader
 
 ## What this is
