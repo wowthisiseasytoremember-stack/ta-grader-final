@@ -303,7 +303,12 @@ DEFAULT_CONFIG: dict[str, Any] = {
         }
     ],
     "endpoint_cooldown_sec": 60,
-    "routing_version": 2
+    "routing_version": 3,
+    "confirm_vision_answers": True,
+    "escalation_endpoints": [
+        "omniroute-copilot-sonnet-5",
+        "omniroute-copilot-gpt5.4",
+    ]
 }
 
 
@@ -786,6 +791,11 @@ class LLMClient:
     def __init__(self) -> None:
         self.session = requests.Session()
         self._cooldown: dict[str, float] = {}
+        # Routing v3 failure memory: per-endpoint and per-origin consecutive
+        # failure streaks drive the exponential cooldown multipliers; both are
+        # cleared on the next success from that chain slice.
+        self._fail_streak: dict[str, int] = {}
+        self._origin_streak: dict[str, int] = {}
         self._copilot_lock = threading.Lock()
 
     def stream(
@@ -796,19 +806,26 @@ class LLMClient:
         image_b64: Optional[str] = None,
         on_status: Optional[Callable[[str], None]] = None,
         prefer_vision: bool = False,
+        only: Optional[list[str]] = None,
+        ignore_cooldown: bool = False,
     ) -> tuple[str, str]:
-        """Try configured order, promoting vision endpoints only when OCR is weak."""
+        """Try configured order, promoting vision endpoints only when OCR is weak.
+
+        Routing v3 additions:
+          only: restrict the chain to these endpoint names (config order kept).
+          ignore_cooldown: for tie-break calls that outrank the cooldown economy.
+        """
         last_err: Any = "no endpoints configured"
         if not cfg.get("vision_enabled", True):
             image_b64 = None
             prefer_vision = False
-        cooldown_sec = float(cfg.get("endpoint_cooldown_sec", 60))
-        now = time.monotonic()
 
-        endpoints = list(cfg.get("endpoints", []))
+        full_enabled = [ep for ep in cfg.get("endpoints", []) if ep.get("enabled", True)]
 
-        # Filter out disabled endpoints
-        endpoints = [ep for ep in endpoints if ep.get("enabled", True)]
+        endpoints = list(full_enabled)
+        if only:
+            only_set = set(only)
+            endpoints = [ep for ep in endpoints if ep.get("name") in only_set]
 
         if prefer_vision and image_b64:
             endpoints = (
@@ -816,36 +833,40 @@ class LLMClient:
                 + [ep for ep in endpoints if not endpoint_supports_vision(ep)]
             )
 
-        # Check if every enabled endpoint is in cooldown
-        all_cooling = True
-        any_enabled = False
+        # Drop endpoints whose API key can never resolve: they only burn the
+        # fallback chain. Keys are resolved (and cached) at startup.
+        eligible: list[dict[str, Any]] = []
         for ep in endpoints:
             name = ep.get("name", ep.get("url", "?"))
-            any_enabled = True
-            cd_until = self._cooldown.get(name, 0.0)
-            if cd_until > now:
-                continue
-            all_cooling = False
-            break
+            if endpoint_api_keys(cfg, ep):
+                eligible.append(ep)
+            else:
+                log(f"LLM: '{name}' skipped (no API key resolved)")
 
-        if any_enabled and all_cooling:
-            raise RuntimeError(
-                f"All enabled endpoints in cooldown for {cooldown_sec:.0f}s; "
-                f"retry after cooldown"
+        # Skip endpoints cooling down for center failures; requests-level
+        # failures grow their wait exponentially (see _mark_failure).
+        now = time.monotonic()
+        live = [
+            ep for ep in eligible
+            if ignore_cooldown
+            or self._cooldown.get(ep.get("name", ep.get("url", "?")), 0.0) <= now
+        ]
+        if eligible and not live:
+            # User-initiated retry with everything cooling? Try the stalest
+            # candidate instead of hard-failing the question.
+            warmest = min(
+                eligible,
+                key=lambda e: self._cooldown.get(e.get("name", e.get("url", "?")), 0.0),
             )
+            wname = warmest.get("name", warmest.get("url", "?"))
+            log(f"LLM: all eligible endpoints cooling down; retrying stalest '{wname}'")
+            live = [warmest]
 
-        for ep in endpoints:
+        for ep in live:
             name = ep.get("name", ep.get("url", "?"))
             url_env = ep.get("url_env")
             effective_url = os.environ.get(url_env) if url_env else None
             log(f"LLM: trying '{name}' model={ep.get('model', '?')!r} url={(effective_url or ep.get('url', '?'))!r}")
-
-            # Skip endpoints in cooldown
-            cd_until = self._cooldown.get(name, 0.0)
-            now = time.monotonic()
-            if cd_until > now:
-                log(f"LLM: '{name}' skipping (cooldown until +{cd_until - now:.1f}s)")
-                continue
 
             if on_status:
                 try:
@@ -863,28 +884,124 @@ class LLMClient:
                     log(f"LLM: '{name}' response rejected by complete-answer validation: {result[:300]!r}")
                     raise RuntimeError("Model returned invalid/incomplete response")
 
-                # Success: clear cooldown for this endpoint
+                # Success: clear cooldown and failure streaks for this slice
                 self._cooldown.pop(name, None)
+                self._fail_streak.pop(name, None)
+                self._origin_streak.pop(self._origin_of(ep), None)
                 return result, name
             except Exception as e:
                 log(f"LLM: '{name}' failed: {type(e).__name__}")
-                self._cooldown[name] = time.monotonic() + cooldown_sec
+                detail = f"{type(e).__name__}: {e}"
+                # Provider-scoped failures cool every endpoint on that origin:
+                #   - connection failures: host is down, all models use it;
+                #   - 429/401: keys and quotas live on one provider backend,
+                #     so exhaustion hits every model routed through it.
+                # HTTP 5xx / stream stalls are model-pool-scoped and stay
+                # local (evidence: the generalist alias served while specific
+                # copilot models returned 503 resource pressure).
+                shared = (
+                    "connection error" in detail
+                    or "HTTP 429" in detail
+                    or "HTTP 401" in detail
+                    or ("timeout" in detail and "wall budget" not in detail)
+                )
+                self._mark_failure(cfg, ep, full_enabled, shared)
                 last_err = e
 
         raise RuntimeError(f"All endpoints failed. Last error type: {type(last_err).__name__}")
 
     @staticmethod
     def _complete_answer(content: str) -> bool:
-        """Accept only a complete JSON answer; incomplete stream prefixes must fall through."""
-        try:
-            obj = json.loads(content.strip())
+        """Accept only fully-formed answers; incomplete stream prefixes fall through.
+
+        Accepts:
+          1. Strict JSON with a non-empty 'answer' value.
+          2. A fenced ```json block containing such an object.
+          3. Prose containing exactly one <letter>) <text> answer line.
+        The streaming char-scan half of extract_answer deliberately does NOT
+        count as complete — a truncated stream must keep falling through.
+        """
+        if not content or not content.strip():
+            return False
+        s = content.strip()
+
+        def _accepted(obj) -> bool:
             if isinstance(obj, dict):
                 answer = obj.get("answer")
                 if isinstance(answer, (str, int, float)) and str(answer).strip():
                     return True
+            return False
+
+        try:
+            if _accepted(json.loads(s)):
+                return True
         except (ValueError, TypeError):
             pass
-        return False
+
+        if "```" in s:
+            for block in re.findall(r"```(?:json)?\s*([\s\S]*?)\s*```", s, re.IGNORECASE):
+                b = block.strip()
+                if b.startswith("{") and b.endswith("}"):
+                    try:
+                        if _accepted(json.loads(b)):
+                            return True
+                    except (ValueError, TypeError):
+                        continue
+
+        # JSON-shaped but unparseable means a truncated stream: reject.
+        if s.startswith("{") or s.startswith("["):
+            return False
+
+        # Prose fallback: exactly one answer line. An echoed option list
+        # (A) ... B) ... C) ...) is not a final answer and must fall through.
+        matches = list(re.finditer(
+            r"\b([A-Ea-e])[)\.]\s*([^\n]+?)(?=\n|$|[A-Ea-e][)\.]\s|\Z)", s,
+        ))
+        return len(matches) == 1
+
+    @staticmethod
+    def _origin_of(ep: dict[str, Any]) -> str:
+        """Host-level identity of an endpoint (env override respected)."""
+        url = str(ep.get("url", ""))
+        env = ep.get("url_env")
+        if env:
+            url = os.environ.get(env) or url
+        tail = url.split("//", 1)[-1]
+        return tail.split("/", 1)[0].lower()
+
+    def _mark_failure(
+        self,
+        cfg: dict[str, Any],
+        ep: dict[str, Any],
+        full_enabled: list[dict[str, Any]],
+        shared: bool,
+    ) -> None:
+        """Record one failed attempt: exponential cooldown per endpoint, and
+        when the failure is connection-level, cool every sibling that shares
+        the same origin so a dead host costs one attempt, not five."""
+        name = ep.get("name", ep.get("url", "?"))
+        base = float(cfg.get("endpoint_cooldown_sec", 60))
+        streak = self._fail_streak.get(name, 0) + 1
+        self._fail_streak[name] = streak
+        origin = self._origin_of(ep)
+        if shared:
+            o_streak = self._origin_streak.get(origin, 0) + 1
+            self._origin_streak[origin] = o_streak
+        else:
+            o_streak = self._origin_streak.get(origin, 0)
+        exponent = min(max(streak, o_streak) - 1, 4)  # base ×2 → ×16 cap
+        due = time.monotonic() + base * (2 ** exponent)
+        self._cooldown[name] = max(self._cooldown.get(name, 0.0), due)
+        if shared:
+            for other in full_enabled:
+                other_name = other.get("name", other.get("url", "?"))
+                if other_name == name:
+                    continue
+                if self._origin_of(other) != origin:
+                    continue
+                self._cooldown[other_name] = max(
+                    self._cooldown.get(other_name, 0.0), due
+                )
 
     def _stream_one(
         self,
@@ -939,7 +1056,9 @@ class LLMClient:
         else:
             user_content = user_prompt_instruction
 
-        token_limit = max(128, int(cfg.get("max_tokens", 512)))
+        # Per-endpoint token budget overrides the global default so heavy
+        # ranks (deep reasoners) can finish instead of emitting truncated JSON.
+        token_limit = max(128, int(ep.get("max_tokens") or cfg.get("max_tokens") or 512))
 
         # Build payload (shared across all key attempts for this endpoint)
         payload: dict[str, Any] = {
@@ -2044,6 +2163,124 @@ class App:
         ).start()
 
     # ------------------------------------------------------------------
+    # Vision consensus — weak-OCR second opinion (routing v3)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _confirm_vision_answers(cfg: dict[str, Any]) -> bool:
+        return str(cfg.get("confirm_vision_answers", True)).strip().lower() not in ("false", "0", "no")
+
+    @staticmethod
+    def _model_letter(answer: Optional[str]) -> Optional[str]:
+        m = re.match(r"\s*([A-Ea-e])[\)\.]", (answer or "").strip())
+        return m.group(1).upper() if m else None
+
+    def _verify_vision_answer(
+        self,
+        text: str,
+        cfg: dict[str, Any],
+        image_b64: Optional[str],
+        first_answer: str,
+        first_endpoint: str,
+        placeholder: tk.Toplevel,
+    ) -> tuple[str, str]:
+        """Second opinion for weak-OCR (vision-first) runs only.
+
+        1. Cross-check with one different-provider-family endpoint (config order).
+        2. Agreement → answer marked confirmed.
+        3. Disagreement → tie-break via cfg['escalation_endpoints'] (deep models),
+           ignoring cooldowns for that call.
+        Returns (final display text, endpoint label). Tk stays on root.after.
+        """
+        first_letter = self._model_letter(first_answer)
+        first_ep = next(
+            (e for e in cfg.get("endpoints", []) if e.get("name") == first_endpoint),
+            None,
+        )
+        if first_ep is None or first_letter is None:
+            return first_answer, first_endpoint
+
+        origin = self.llm._origin_of(first_ep)
+        checker = next(
+            (
+                e for e in cfg.get("endpoints", [])
+                if e.get("enabled", True)
+                and e.get("name") != first_endpoint
+                and self.llm._origin_of(e) != origin
+            ),
+            None,
+        )
+        if checker is None:
+            return first_answer, first_endpoint
+        checker_name = checker.get("name", checker.get("url", "?"))
+
+        def quiet_chunk(_acc: str, _ep: str) -> None:
+            pass
+
+        def confirm_status(ep_name: str) -> None:
+            self.root.after(
+                0,
+                lambda n=ep_name: self.overlays.update(
+                    placeholder, f"{first_answer}\n\nsecond opinion… [{n}]"
+                ),
+            )
+
+        try:
+            second_raw, second_name = self.llm.stream(
+                text, cfg, quiet_chunk,
+                image_b64=image_b64,
+                on_status=confirm_status,
+                prefer_vision=True,
+                only=[checker_name],
+            )
+        except Exception as e:
+            log(f"consensus check skipped ({type(e).__name__})")
+            return first_answer, first_endpoint
+
+        second_answer = extract_answer(second_raw)
+        second_letter = self._model_letter(second_answer)
+        if second_letter is None:
+            return first_answer, f"{first_endpoint} (2nd unparsed)"
+        if second_letter == first_letter:
+            return f"{first_answer}\n[confirmed by {second_name}]", first_endpoint
+
+        self.root.after(
+            0,
+            lambda: self.overlays.update(
+                placeholder,
+                f"{first_answer}\nmodels disagree ({first_letter} vs {second_letter}) — tie-break…",
+            ),
+        )
+        escalation = [
+            n for n in (cfg.get("escalation_endpoints") or ["omniroute-copilot-sonnet-5"])
+            if n not in (first_endpoint, checker_name)
+        ]
+        if not escalation:
+            return f"{first_answer} | disagree: {second_answer}", "disagreed (no tie-break)"
+        try:
+            third_raw, third_name = self.llm.stream(
+                text, cfg, quiet_chunk,
+                image_b64=image_b64,
+                on_status=confirm_status,
+                prefer_vision=True,
+                only=escalation,
+                ignore_cooldown=True,
+            )
+            third_answer = extract_answer(third_raw)
+        except Exception as e:
+            log(f"tie-break failed ({type(e).__name__})")
+            return f"{first_answer} | disagree: {second_answer}", f"{first_endpoint} (tie-break failed)"
+
+        third_letter = self._model_letter(third_answer)
+        if third_letter == first_letter:
+            return f"{first_answer}\n[confirmed by {third_name}]", f"{first_endpoint}+{third_name}"
+        if third_letter == second_letter:
+            return f"{second_answer}\n[tie-break by {third_name}]", third_name
+        if third_answer:
+            return f"{third_answer}\n[deep tie-break by {third_name}]", third_name
+        return f"{first_answer} | disagree: {second_answer}", f"{first_endpoint} (tie-break empty)"
+
+    # ------------------------------------------------------------------
     # Shared LLM worker — runs on a background thread
     # ------------------------------------------------------------------
 
@@ -2079,13 +2316,29 @@ class App:
                 # Log the full raw response so we can diagnose extraction failures
                 log(f"extract_answer failed. endpoint={endpoint_used!r} raw={final_raw!r}")
                 final_answer = "⚠ No answer found.\n\nTry selecting a larger region or re-copying the text."
+
+            # Routing v3: weak-OCR answers get one cross-check from a different
+            # provider family; deep models tie-break on disagreement.
+            display = final_answer
+            ep_label = endpoint_used
+            if (
+                prefer_vision
+                and image_b64
+                and final_answer
+                and self._confirm_vision_answers(self.cfg)
+                and self._model_letter(final_answer)
+            ):
+                display, ep_label = self._verify_vision_answer(
+                    text, self.cfg, image_b64, final_answer, endpoint_used, placeholder
+                )
+
             log(
                 f"Input question ({len(text)} chars, image={'yes' if image_b64 else 'no'}, "
                 f"strategy={'vision-first' if prefer_vision else 'text-first'}):\n"
-                f"{text}\n--> Answer from '{endpoint_used}': {final_answer}"
+                f"{text}\n--> Answer from '{ep_label}': {display}"
             )
-            self.overlays.record_last(final_answer, anchor_x, anchor_y, endpoint_used)
-            self.root.after(0, lambda a=final_answer: self.overlays.update(placeholder, a))
+            self.overlays.record_last(display, anchor_x, anchor_y, ep_label)
+            self.root.after(0, lambda a=display: self.overlays.update(placeholder, a))
             self.root.after(0, lambda: self.status.set_dot("#40c040"))
         except Exception as e:
             log(f"LLM error: {e}")

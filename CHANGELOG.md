@@ -1,5 +1,40 @@
 # Changelog — TA Grader
 
+## 2026-10-30 03:05 UTC — routing v3: provider-interleaved chain, cooldown economics, vision consensus
+
+Goal: fastest model that is not garbage. Log evidence (2,733 runs) drove every change.
+
+### Changed
+- Re-enabled `omniroute-copilot-gpt5.4-mini` (844 historical wins — fastest deep model; disabled during earlier drift was over-correction).
+- Rebuilt the endpoint chain (10 ranks, `routing_version: 3`), provider-interleaved so quota exhaustion or outage on one backend cannot take the whole chain down: terra → gpt5.4-mini → haiku → yolo-auto-flash → opencode-deepseek-vision → omniroute-generalist (889 wins, most resilient) → gemini-flash → sonnet-5 → gpt5.4 → xai-grok-reasoning (last; deep-reasoning algebra emergency only).
+- Moved `xai-grok-reasoning` to the last rank with a real budget (`max_tokens` 4096, 16s/22s timeouts) so it finishes when it is actually needed.
+- Renamed the duplicate second gemini endpoint `omniroute-copilot-gemini-flash` → `omniroute-legacy-gemini-flash` (unique-name contract).
+- Deep ranks got per-endpoint `max_tokens`: sonnet-5 1536, gpt5.4 2048, grok-reasoning 4096 (replaces the global 512 cap that produced truncated JSON).
+
+### Routing economics (cooldown scoping)
+- Exponential per-endpoint cooldown: `base × 2^min(streak-1, 4)` — 10s base, 160s cap, cleared on success.
+- Provider-scoped failure sharing: connection failures and HTTP 429/401 cool every sibling endpoint on the same origin (keys/quotas live on one provider backend). HTTP 5xx and stream stalls stay endpoint-local (evidence: the generalist alias served while specific copilot models 503'd).
+- Keyless endpoints are skipped before the attempt loop — an unresolvable key never burns fallback attempts.
+- All-cooling falls back to retrying the stalest endpoint instead of hard-failing the question.
+
+### Correctness
+- `_complete_answer` now accepts strict JSON, fenced ```json blocks, and exactly one prose answer line, while rejecting truncated streams (JSON-shaped but unparseable) and option-echoes.
+
+### Vision consensus (Tier C)
+- Weak-OCR (vision-first) answers get one cross-check from a different-provider endpoint; agreement → `[confirmed by X]`; disagreement → tie-break via `escalation_endpoints` (sonnet-5, gpt5.4) with cooldowns ignored for that call.
+- New config keys: `confirm_vision_answers` (default true), `escalation_endpoints`.
+
+### Contract tests
+- Added routing-v3 contract tests: cooldown/exponential backoff, provider scoping, keyless skip, stalest retry, vision consensus, per-endpoint token budgets, provider diversity in the top 5, deep-reasoning ranks at the back. 36 tests, all green.
+
+## 2026-10-29 00:57 UTC — default model upgrade: copilot terra
+
+### Changed
+- Added `omniroute-copilot-terra` (`no-think/github/gpt-5.6-terra`) as first-pick model in `config.json`.
+- Disabled non-functional `omniroute-copilot-gpt5.4-mini` endpoint.
+- Updated `TA_Grader.py` to strip the `temperature` parameter when dispatching to Terra models (upstream GitHub Copilot requirement).
+- Haiku retained at rank 2 as fast fallback.
+
 ## 2026-09-27 — routing/security audit
 
 ### Fixed
