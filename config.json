@@ -36,13 +36,13 @@
       "key_env": [
         "OPENCODEGOTAGRADER"
       ],
-      "timeout_sec": 8,
-      "total_timeout_sec": 12,
+      "timeout_sec": 15,
+      "total_timeout_sec": 20,
       "max_retries": 1,
       "supports_response_format": false,
       "supports_vision": false,
       "enabled": true,
-      "max_tokens": 4096
+      "max_tokens": 256
     },
     {
       "name": "opencode-go-claude-haiku-5-5",
@@ -51,12 +51,13 @@
       "key_env": [
         "OPENCODEGOTAGRADER"
       ],
-      "timeout_sec": 6,
-      "total_timeout_sec": 9,
+      "timeout_sec": 10,
+      "total_timeout_sec": 15,
       "max_retries": 1,
       "supports_response_format": false,
       "supports_vision": false,
-      "enabled": true
+      "enabled": true,
+      "max_tokens": 256
     },
     {
       "name": "yolo-auto-flash",
@@ -66,8 +67,8 @@
         "YOLO_AUTO_API_KEY",
         "YOLO_API_KEY"
       ],
-      "timeout_sec": 10,
-      "total_timeout_sec": 15,
+      "timeout_sec": 12,
+      "total_timeout_sec": 18,
       "max_retries": 1,
       "supports_response_format": false,
       "supports_vision": false,
@@ -76,7 +77,8 @@
           "enable_thinking": false
         }
       },
-      "enabled": true
+      "enabled": true,
+      "max_tokens": 256
     },
     {
       "name": "omniroute-generalist",
@@ -86,12 +88,13 @@
       "key_env": [
         "OMNIROUTE_API_KEY"
       ],
-      "timeout_sec": 12,
-      "total_timeout_sec": 16,
+      "timeout_sec": 15,
+      "total_timeout_sec": 20,
       "max_retries": 0,
       "supports_response_format": false,
       "supports_vision": false,
-      "enabled": true
+      "enabled": true,
+      "max_tokens": 512
     },
     {
       "name": "xai-grok-reasoning",
@@ -100,12 +103,12 @@
       "key_env": [
         "XAI_API_KEY"
       ],
-      "timeout_sec": 16,
-      "total_timeout_sec": 22,
+      "timeout_sec": 20,
+      "total_timeout_sec": 30,
       "max_retries": 0,
       "supports_response_format": true,
       "supports_vision": true,
-      "max_tokens": 4096,
+      "max_tokens": 512,
       "enabled": true
     },
     {
