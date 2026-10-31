@@ -109,7 +109,7 @@
       "supports_response_format": true,
       "supports_vision": true,
       "max_tokens": 512,
-      "enabled": true
+      "enabled": false
     },
     {
       "name": "omniroute-copilot-terra",
