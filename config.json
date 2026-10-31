@@ -30,48 +30,32 @@
   "temperature": 0.2,
   "endpoints": [
     {
-      "name": "omniroute-copilot-terra",
-      "url": "http://100.122.158.123:20128/v1/chat/completions",
-      "url_env": "OMNIROUTE_CHAT_URL",
-      "model": "no-think/github/gpt-5.6-terra",
+      "name": "opencode-go-beam-free",
+      "url": "https://opencode.ai/zen/go/v1/chat/completions",
+      "model": "beam-free",
       "key_env": [
-        "OMNIROUTE_API_KEY"
+        "OPENCODEGOTAGRADER"
+      ],
+      "timeout_sec": 8,
+      "total_timeout_sec": 12,
+      "max_retries": 1,
+      "supports_response_format": false,
+      "supports_vision": false,
+      "enabled": true,
+      "max_tokens": 4096
+    },
+    {
+      "name": "opencode-go-claude-haiku-5-5",
+      "url": "https://opencode.ai/zen/go/v1/chat/completions",
+      "model": "claude-haiku-5-5",
+      "key_env": [
+        "OPENCODEGOTAGRADER"
       ],
       "timeout_sec": 6,
       "total_timeout_sec": 9,
-      "max_retries": 0,
+      "max_retries": 1,
       "supports_response_format": false,
-      "supports_vision": true,
-      "enabled": true
-    },
-    {
-      "name": "omniroute-copilot-gpt5.4-mini",
-      "url": "http://100.122.158.123:20128/v1/chat/completions",
-      "url_env": "OMNIROUTE_CHAT_URL",
-      "model": "github/gpt-5.4-mini",
-      "key_env": [
-        "OMNIROUTE_API_KEY"
-      ],
-      "timeout_sec": 5,
-      "total_timeout_sec": 8,
-      "max_retries": 0,
-      "supports_response_format": false,
-      "supports_vision": true,
-      "enabled": true
-    },
-    {
-      "name": "omniroute-copilot-haiku",
-      "url": "http://100.122.158.123:20128/v1/chat/completions",
-      "url_env": "OMNIROUTE_CHAT_URL",
-      "model": "no-think/github/claude-haiku-4.5",
-      "key_env": [
-        "OMNIROUTE_API_KEY"
-      ],
-      "timeout_sec": 5,
-      "total_timeout_sec": 8,
-      "max_retries": 0,
-      "supports_response_format": false,
-      "supports_vision": true,
+      "supports_vision": false,
       "enabled": true
     },
     {
@@ -95,21 +79,6 @@
       "enabled": true
     },
     {
-      "name": "opencode-deepseek-vision",
-      "url": "https://opencode.ai/zen/go/v1/chat/completions",
-      "model": "deepseek-v4-flash-vision-exp",
-      "key_env": [
-        "OPENCODEGOTAGRADER",
-        "OPENCODE_GO_API_KEY_3"
-      ],
-      "timeout_sec": 8,
-      "total_timeout_sec": 12,
-      "max_retries": 1,
-      "supports_response_format": false,
-      "supports_vision": true,
-      "enabled": true
-    },
-    {
       "name": "omniroute-generalist",
       "url": "http://100.122.158.123:20128/v1/chat/completions",
       "url_env": "OMNIROUTE_CHAT_URL",
@@ -123,6 +92,81 @@
       "supports_response_format": false,
       "supports_vision": false,
       "enabled": true
+    },
+    {
+      "name": "xai-grok-reasoning",
+      "url": "https://api.x.ai/v1/chat/completions",
+      "model": "grok-4.20-0309-reasoning",
+      "key_env": [
+        "XAI_API_KEY"
+      ],
+      "timeout_sec": 16,
+      "total_timeout_sec": 22,
+      "max_retries": 0,
+      "supports_response_format": true,
+      "supports_vision": true,
+      "max_tokens": 4096,
+      "enabled": true
+    },
+    {
+      "name": "omniroute-copilot-terra",
+      "url": "http://100.122.158.123:20128/v1/chat/completions",
+      "url_env": "OMNIROUTE_CHAT_URL",
+      "model": "no-think/github/gpt-5.6-terra",
+      "key_env": [
+        "OMNIROUTE_API_KEY"
+      ],
+      "timeout_sec": 6,
+      "total_timeout_sec": 9,
+      "max_retries": 0,
+      "supports_response_format": false,
+      "supports_vision": true,
+      "enabled": false
+    },
+    {
+      "name": "omniroute-copilot-gpt5.4-mini",
+      "url": "http://100.122.158.123:20128/v1/chat/completions",
+      "url_env": "OMNIROUTE_CHAT_URL",
+      "model": "github/gpt-5.4-mini",
+      "key_env": [
+        "OMNIROUTE_API_KEY"
+      ],
+      "timeout_sec": 5,
+      "total_timeout_sec": 8,
+      "max_retries": 0,
+      "supports_response_format": false,
+      "supports_vision": true,
+      "enabled": false
+    },
+    {
+      "name": "omniroute-copilot-haiku",
+      "url": "http://100.122.158.123:20128/v1/chat/completions",
+      "url_env": "OMNIROUTE_CHAT_URL",
+      "model": "no-think/github/claude-haiku-4.5",
+      "key_env": [
+        "OMNIROUTE_API_KEY"
+      ],
+      "timeout_sec": 5,
+      "total_timeout_sec": 8,
+      "max_retries": 0,
+      "supports_response_format": false,
+      "supports_vision": true,
+      "enabled": false
+    },
+    {
+      "name": "opencode-deepseek-vision",
+      "url": "https://opencode.ai/zen/go/v1/chat/completions",
+      "model": "deepseek-v4-flash-vision-exp",
+      "key_env": [
+        "OPENCODEGOTAGRADER",
+        "OPENCODE_GO_API_KEY_3"
+      ],
+      "timeout_sec": 8,
+      "total_timeout_sec": 12,
+      "max_retries": 1,
+      "supports_response_format": false,
+      "supports_vision": true,
+      "enabled": false
     },
     {
       "name": "omniroute-copilot-gemini-flash",
@@ -140,7 +184,7 @@
       "payload_overrides": {
         "reasoning_effort": "low"
       },
-      "enabled": true
+      "enabled": false
     },
     {
       "name": "omniroute-copilot-sonnet-5",
@@ -156,7 +200,7 @@
       "supports_response_format": false,
       "supports_vision": true,
       "max_tokens": 1536,
-      "enabled": true
+      "enabled": false
     },
     {
       "name": "omniroute-copilot-gpt5.4",
@@ -172,22 +216,7 @@
       "supports_response_format": false,
       "supports_vision": true,
       "max_tokens": 2048,
-      "enabled": true
-    },
-    {
-      "name": "xai-grok-reasoning",
-      "url": "https://api.x.ai/v1/chat/completions",
-      "model": "grok-4.20-0309-reasoning",
-      "key_env": [
-        "XAI_API_KEY"
-      ],
-      "timeout_sec": 16,
-      "total_timeout_sec": 22,
-      "max_retries": 0,
-      "supports_response_format": true,
-      "supports_vision": true,
-      "max_tokens": 4096,
-      "enabled": true
+      "enabled": false
     },
     {
       "name": "opencode-go-mimo-v2.6-flash",
@@ -424,7 +453,7 @@
   ],
   "endpoint_cooldown_sec": 10,
   "routing_version": 3,
-  "confirm_vision_answers": true,
+  "confirm_vision_answers": false,
   "escalation_endpoints": [
     "omniroute-copilot-sonnet-5",
     "omniroute-copilot-gpt5.4"

@@ -139,6 +139,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "tesseract_psm": 6,
     "ocr_min_confidence": 75.0,
     "ocr_min_option_markers": 3,
+    "enable_math_mode": False,
     "doppler_project": "ichabod",
     "system_prompt": PERSONA,
     "max_tokens": 512,
@@ -585,6 +586,7 @@ def clean_question_text(text: str) -> str:
       2. Fix hyphenated word breaks across lines (e.g., 'con-\nstitution' -> 'constitution').
       3. Collapse excessive empty lines while preserving discrete option lines.
       4. Trim leading/trailing whitespace per line.
+      5. Normalize radio glyphs and auto-label unlabeled options before submit/continue footers.
     """
     if not text:
         return text
@@ -596,6 +598,44 @@ def clean_question_text(text: str) -> str:
     t = re.sub(r"\n{3,}", "\n\n", t)
     # Clean whitespace per line without collapsing lines into one another
     lines = [re.sub(r"[ \t]+", " ", line.strip()) for line in t.splitlines()]
+
+    # 1. Normalize OCR radio button artifacts (©, ®, (@), Ac, Ar, O, oO, etc.) -> A), B), C), D)
+    radio_re = r"^(?:[©®•]|\(\s*[@oO0•]?\s*\)|\[\s*\]|Ac|Ar|oO|[oO0]{1,2})(?:[\.\)]|\s)\s*\S+"
+    radio_lines = [
+        i for i, line in enumerate(lines)
+        if re.match(radio_re, line)
+        and not re.match(r"^Question\s+\d", line, re.IGNORECASE)
+    ]
+    if len(radio_lines) in (3, 4, 5):
+        letters = ["A", "B", "C", "D", "E"]
+        for idx, line_idx in enumerate(radio_lines):
+            lines[line_idx] = re.sub(
+                r"^(?:[©®•]|\(\s*[@oO0•]?\s*\)|\[\s*\]|Ac|Ar|oO|[oO0]{1,2})[\.\)\s]+",
+                f"{letters[idx]}) ",
+                lines[line_idx],
+            )
+    else:
+        # 2. Check for unlabeled options preceding footer (SAVE & CONTINUE, SUBMIT, etc.)
+        footer_idx = None
+        for i, line in enumerate(lines):
+            if re.match(r"^(?:SAVE\s*&\s*CONTINUE|SUBMIT(?:\s+MY\s+ANSWER)?|Report\s+an\s+issue)", line, re.IGNORECASE):
+                footer_idx = i
+                break
+
+        if footer_idx is not None and footer_idx >= 3:
+            q_idx = -1
+            for i in range(footer_idx - 1, -1, -1):
+                if "?" in lines[i] or ":" in lines[i]:
+                    q_idx = i
+                    break
+
+            candidate_options = list(range(q_idx + 1 if q_idx != -1 else max(0, footer_idx - 4), footer_idx))
+            if len(candidate_options) in (3, 4, 5):
+                if not any(re.match(r"^[A-Ea-e][\)\.]\s+", lines[ci]) for ci in candidate_options):
+                    letters = ["A", "B", "C", "D", "E"]
+                    for idx, ci in enumerate(candidate_options):
+                        lines[ci] = f"{letters[idx]}) {lines[ci]}"
+
     return "\n".join([line for line in lines if line])
 
 
@@ -672,39 +712,57 @@ def assess_ocr_quality(
     if not text.strip():
         return False, "empty OCR"
 
-    # Mean OCR confidence cannot validate fractions, radicals or minus signs.
-    # Prefer the original frame for math lessons even when surrounding prose is clear.
-    if re.search(
-        r"\b(math|mathematics|algebra|algebraic|arithmetic|calculus|geometry|trigonometry|"
-        r"rational|irrational|evaluate|expression|equation|inequality|inequalities|"
-        r"fraction|exponent|polynomial|quadratic|sequence|sequences|series|"
-        r"absolute\s+value|subtracting|multiplying|dividing)\b"
-        r"|[√∛∑∫²³≤≥]"
-        r"|<=|>="
-        r"|\|[^|\n]+\|"
-        r"|\d\s*[-+*/=^<>≤≥]\s*[(\d]"
-        r"|\b[a-z]\s*[+*/=^<>≤≥]\s*[\da-z(]"
-        r"|\b[a-z]\s+-\s+[\da-z(]"
-        r"|[\d)]\s*[-+*/=^<>≤≥]\s*[a-z]\b",
-        text, re.IGNORECASE,
-    ):
-        return False, "math notation requires visual verification"
+    # Math mode is opt-in (disabled by default) to keep 95%+ of questions on the fastest text endpoints
+    if cfg.get("enable_math_mode", False) or cfg.get("enable_math_detection", False):
+        # Bypass math detection for networking/IT stems unless actual formulas or radicals are present
+        is_it_domain = bool(
+            re.search(
+                r"\b(switch|switches|vlan|vlans|router|routers|subnet|ip address|dns|tcp|udp|osi layer|packet|gateway|port configuration|firewall)\b",
+                text,
+                re.IGNORECASE,
+            )
+        )
+        if is_it_domain:
+            if re.search(r"[√∛∑∫]|\b\d+/\d+\b\s*=\s*|\b[a-z]_\d+\b", text):
+                return False, "math notation requires visual verification"
+        elif re.search(
+            r"\b(math|mathematics|algebra|algebraic|arithmetic|calculus|geometry|trigonometry|"
+            r"rational|irrational|evaluate|fraction|exponent|polynomial|quadratic|"
+            r"(?:arithmetic|geometric)\s+sequence|absolute\s+value|inequality|inequalities)\b"
+            r"|[√∛∑∫²³≤≥]"
+            r"|<=|>="
+            r"|\|[^|\n]+\|"
+            r"|\d\s*[-+*/=^<>≤≥]\s*[(\d]"
+            r"|\b[a-z]\s*[+*/=^<>≤≥]\s*[\da-z(]"
+            r"|\b[a-z]\s+-\s+[\da-z(]"
+            r"|[\d)]\s*[-+*/=^<>≤≥]\s*[a-z]\b",
+            text,
+            re.IGNORECASE,
+        ):
+            return False, "math notation requires visual verification"
 
-    min_conf = float(cfg.get("ocr_min_confidence", 75.0))
+    min_conf = float(cfg.get("ocr_min_confidence", 45.0))
     if confidence < min_conf:
         return False, f"confidence {confidence:.1f} < {min_conf:.1f}"
 
-    markers = {
-        m.group(1).upper().replace("¢", "C").replace("©", "C")
-        for m in re.finditer(r"(?m)^\s*([A-Ea-e¢©])(?:[\)\.:]|[\.\)][\)\.]?)\s+", text)
-    }
-    bullet_count = len(re.findall(r"(?m)^\s*(?:[©®oO0•\-\*]|oO|\(\s*\)|\[\s*\])\s+\S+", text))
-    effective_markers = max(len(markers), bullet_count)
-    min_markers = int(cfg.get("ocr_min_option_markers", 3))
-    if len(text.splitlines()) >= 4 and effective_markers < min_markers:
-        return False, f"only {effective_markers} option markers found"
+    min_markers = int(cfg.get("ocr_min_option_markers", 0))
+    if min_markers > 0:
+        markers = {
+            m.group(1).upper().replace("¢", "C").replace("©", "C")
+            for m in re.finditer(r"(?m)^\s*([A-Ea-e¢©])(?:[\)\.:]|[\.\)][\)\.]?)\s+", text)
+        }
+        bullet_count = len(
+            re.findall(
+                r"(?m)^\s*(?:[©®•]|\(\s*[@oO0•]?\s*\)|\[\s*\]|Ac|Ar|oO|[oO0]{1,2})(?:[\.\)]|\s)\s*\S+",
+                text,
+            )
+        )
+        effective_markers = max(len(markers), bullet_count)
+        if len(text.splitlines()) >= 4 and effective_markers < min_markers:
+            return False, f"only {effective_markers} option markers found"
+        return True, f"confidence {confidence:.1f}, markers={effective_markers}"
 
-    return True, f"confidence {confidence:.1f}, markers={effective_markers}"
+    return True, f"confidence {confidence:.1f}"
 
 
 def stitch_images(images: list[Image.Image]) -> Image.Image:
@@ -890,7 +948,7 @@ class LLMClient:
                 self._origin_streak.pop(self._origin_of(ep), None)
                 return result, name
             except Exception as e:
-                log(f"LLM: '{name}' failed: {type(e).__name__}")
+                log(f"LLM: '{name}' failed: {type(e).__name__}: {e}")
                 detail = f"{type(e).__name__}: {e}"
                 # Provider-scoped failures cool every endpoint on that origin:
                 #   - connection failures: host is down, all models use it;
@@ -948,8 +1006,12 @@ class LLMClient:
                     except (ValueError, TypeError):
                         continue
 
-        # JSON-shaped but unparseable means a truncated stream: reject.
+        # JSON-shaped but unparseable (truncated stream): try to salvage a partial
+        # answer before rejecting, so a reasoning model that cut off mid-JSON
+        # still contributes its letter instead of forcing a full fallback.
         if s.startswith("{") or s.startswith("["):
+            if re.search(r"answer", s, re.IGNORECASE) and re.search(r'[A-Ea-e]\)', s):
+                return True
             return False
 
         # Prose fallback: exactly one answer line. An echoed option list
