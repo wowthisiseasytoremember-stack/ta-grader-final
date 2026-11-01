@@ -59,15 +59,19 @@ from tkinter import messagebox
 APP_NAME = "TA Grader"
 HERE = Path(__file__).resolve().parent
 CONFIG_PATH = HERE / "config.json"
-LOG_PATH = Path(tempfile.gettempdir()) / "ta_grader.log"
+LOG_PATH = HERE / "ta_grader.log"
+FALLBACK_LOG_PATH = Path(tempfile.gettempdir()) / "ta_grader.log"
 
 
 def log(msg: str) -> None:
-    try:
-        with open(LOG_PATH, "a", encoding="utf-8") as f:
-            f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {msg}\n")
-    except Exception:
-        pass
+    line = f"{time.strftime('%Y-%m-%d %H:%M:%S')} {msg}\n"
+    for p in (LOG_PATH, FALLBACK_LOG_PATH):
+        try:
+            with open(p, "a", encoding="utf-8") as f:
+                f.write(line)
+            break
+        except Exception:
+            continue
 
 
 # ---------------------------------------------------------------------------
@@ -137,179 +141,96 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "max_overlay_height_px": 280,
     "tesseract_path": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe",
     "tesseract_psm": 6,
-    "ocr_min_confidence": 75.0,
+    "ocr_min_confidence": 65.0,
     "ocr_min_option_markers": 3,
     "enable_math_mode": False,
     "doppler_project": "ichabod",
+    "doppler_config": "prd",
     "system_prompt": PERSONA,
-    "max_tokens": 512,
+    "max_tokens": 256,
     "temperature": 0.2,
     "endpoints": [
         {
-            "name": "yolo-auto-flash",
-            "url": "https://yolo-auto.com/v1/chat/completions",
-            "model": "qwen3.8-27b",
-            "key_env": [
-                "YOLO_AUTO_API_KEY_2",
-                "YOLO_AUTO_API_KEY"
-            ],
-            "timeout_sec": 5,
-            "max_retries": 0,
-            "supports_response_format": False,
-            "supports_vision": False,
-            "total_timeout_sec": 8
-        },
-        {
-            "name": "omniroute-copilot-mini",
-            "url": "http://192.168.1.200:20128/v1/chat/completions",
-            "url_env": "OMNIROUTE_CHAT_URL",
-            "model": "github/gpt-4o-mini",
-            "key_env": [
-                "OMNIROUTE_API_KEY"
-            ],
-            "timeout_sec": 6,
-            "total_timeout_sec": 9,
-            "max_retries": 0,
-            "supports_response_format": False,
-            "supports_vision": False,
-            "enabled": True
-        },
-        {
-            "name": "omniroute-antigravity-lite",
-            "url": "http://192.168.1.200:20128/v1/chat/completions",
-            "url_env": "OMNIROUTE_CHAT_URL",
-            "model": "antigravity/gemini-3.1-flash-lite",
-            "key_env": [
-                "OMNIROUTE_API_KEY"
-            ],
-            "timeout_sec": 8,
-            "total_timeout_sec": 12,
-            "max_retries": 0,
-            "supports_response_format": False,
-            "supports_vision": True,
-            "enabled": True
-        },
-        {
-            "name": "omniroute-copilot-gpt5-mini",
-            "url": "http://192.168.1.200:20128/v1/chat/completions",
-            "url_env": "OMNIROUTE_CHAT_URL",
-            "model": "github/gpt-5-mini",
-            "key_env": [
-                "OMNIROUTE_API_KEY"
-            ],
-            "timeout_sec": 6,
-            "total_timeout_sec": 9,
-            "max_retries": 0,
-            "supports_response_format": False,
-            "supports_vision": False,
-            "enabled": True
-        },
-        {
-            "name": "omniroute-antigravity-flash",
-            "url": "http://192.168.1.200:20128/v1/chat/completions",
-            "url_env": "OMNIROUTE_CHAT_URL",
-            "model": "antigravity/gemini-3.5-flash-lite",
-            "key_env": [
-                "OMNIROUTE_API_KEY"
-            ],
-            "timeout_sec": 8,
-            "total_timeout_sec": 12,
-            "max_retries": 0,
-            "supports_response_format": False,
-            "supports_vision": True,
-            "enabled": True
-        },
-        {
-            "name": "omniroute-yolo",
-            "url": "http://192.168.1.200:20128/v1/chat/completions",
-            "url_env": "OMNIROUTE_CHAT_URL",
-            "model": "yolo-auto/qwen3.8-27b",
-            "key_env": [
-                "OMNIROUTE_API_KEY"
-            ],
-            "timeout_sec": 6,
-            "total_timeout_sec": 9,
-            "max_retries": 0,
-            "supports_response_format": False,
-            "supports_vision": False,
-            "enabled": True
-        },
-        {
-            "name": "omniroute-ollama-cloud",
-            "url": "http://192.168.1.200:20128/v1/chat/completions",
-            "url_env": "OMNIROUTE_CHAT_URL",
-            "model": "ollama-cloud/glm-5.3-flash",
-            "key_env": [
-                "OMNIROUTE_API_KEY"
-            ],
-            "timeout_sec": 6,
-            "total_timeout_sec": 9,
-            "max_retries": 0,
-            "supports_response_format": False,
-            "supports_vision": False,
-            "enabled": False
-        },
-        {
-            "name": "gemini-flash",
+            "name": "gemini-flash-lite",
             "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-            "model": "gemini-2.5-flash",
+            "model": "gemini-3.1-flash-lite",
             "key_env": [
                 "GEMINI_API_KEY",
                 "GEMINI_FLASH_KEY_2"
             ],
-            "timeout_sec": 6,
+            "timeout_sec": 3.5,
+            "total_timeout_sec": 5.0,
             "max_retries": 0,
             "supports_response_format": True,
             "supports_vision": True,
-            "total_timeout_sec": 9
+            "enabled": True,
+            "max_tokens": 256
         },
         {
-            "name": "openai-gpt-4o-mini",
-            "url": "https://api.openai.com/v1/chat/completions",
-            "model": "gpt-4o-mini",
+            "name": "opencode-haiku",
+            "url": "https://opencode.ai/zen/go/v1/chat/completions",
+            "model": "claude-haiku-5-5",
             "key_env": [
-                "OPENAI_API_KEY"
+                "OPENCODEGOTAGRADER"
             ],
-            "timeout_sec": 6,
+            "timeout_sec": 3.5,
+            "total_timeout_sec": 4.5,
             "max_retries": 0,
-            "supports_response_format": True,
-            "supports_vision": True,
-            "total_timeout_sec": 9
-        },
-        {
-            "name": "nvidia-llama-3.2-11b-vision",
-            "url": "https://integrate.api.nvidia.com/v1/chat/completions",
-            "model": "meta/llama-3.2-11b-vision-instruct",
-            "key_env": [
-                "NVIDIA_API_KEY"
-            ],
-            "timeout_sec": 6,
-            "max_retries": 0,
-            "supports_response_format": True,
-            "supports_vision": True,
-            "total_timeout_sec": 9
-        },
-        {
-            "name": "nvidia-nemotron-lightning",
-            "url": "https://integrate.api.nvidia.com/v1/chat/completions",
-            "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
-            "key_env": [
-                "NVIDIA_API_KEY"
-            ],
-            "timeout_sec": 6,
-            "max_retries": 0,
-            "supports_response_format": True,
+            "supports_response_format": False,
             "supports_vision": False,
-            "total_timeout_sec": 9
+            "enabled": True,
+            "max_tokens": 256
+        },
+        {
+            "name": "omniroute-haiku",
+            "url": "http://192.168.1.200:20128/v1/chat/completions",
+            "url_env": "OMNIROUTE_CHAT_URL",
+            "model": "no-think/github/claude-haiku-4.5",
+            "key_env": [
+                "OMNIROUTE_API_KEY"
+            ],
+            "timeout_sec": 3.0,
+            "total_timeout_sec": 3.5,
+            "max_retries": 0,
+            "supports_response_format": False,
+            "supports_vision": True,
+            "enabled": True,
+            "max_tokens": 256
+        },
+        {
+            "name": "omniroute-terra",
+            "url": "http://192.168.1.200:20128/v1/chat/completions",
+            "url_env": "OMNIROUTE_CHAT_URL",
+            "model": "no-think/github/gpt-5.6-terra",
+            "key_env": [
+                "OMNIROUTE_API_KEY"
+            ],
+            "timeout_sec": 3.5,
+            "total_timeout_sec": 4.0,
+            "max_retries": 0,
+            "supports_response_format": False,
+            "supports_vision": True,
+            "enabled": True,
+            "max_tokens": 256
+        },
+        {
+            "name": "xai-grok-fast",
+            "url": "https://api.x.ai/v1/chat/completions",
+            "model": "grok-4.20-0309-non-reasoning",
+            "key_env": [
+                "XAI_API_KEY"
+            ],
+            "timeout_sec": 4.5,
+            "total_timeout_sec": 5.5,
+            "max_retries": 0,
+            "supports_response_format": True,
+            "supports_vision": True,
+            "enabled": True,
+            "max_tokens": 256
         }
     ],
-    "endpoint_cooldown_sec": 60,
-    "routing_version": 3,
-    "confirm_vision_answers": True,
-    "escalation_endpoints": [
-        "omniroute-copilot-sonnet-5",
-        "omniroute-copilot-gpt5.4",
-    ]
+    "endpoint_cooldown_sec": 15,
+    "vision_enabled": True,
 }
 
 
@@ -599,11 +520,18 @@ def clean_question_text(text: str) -> str:
     # Clean whitespace per line without collapsing lines into one another
     lines = [re.sub(r"[ \t]+", " ", line.strip()) for line in t.splitlines()]
 
+    # Normalize common OCR misread of 'c.)' as '¢.)' or '©.)'
+    for idx, line in enumerate(lines):
+        lines[idx] = re.sub(r"^[¢©](\.?[\)\.]\s+)", r"c\1", line)
+
+    option_label_re = r"^[A-Ea-e](?:[\)\.:]|\.\))\s+"
+
     # 1. Normalize OCR radio button artifacts (©, ®, (@), Ac, Ar, O, oO, etc.) -> A), B), C), D)
     radio_re = r"^(?:[©®•]|\(\s*[@oO0•]?\s*\)|\[\s*\]|Ac|Ar|oO|[oO0]{1,2})(?:[\.\)]|\s)\s*\S+"
     radio_lines = [
         i for i, line in enumerate(lines)
         if re.match(radio_re, line)
+        and not re.match(option_label_re, line)
         and not re.match(r"^Question\s+\d", line, re.IGNORECASE)
     ]
     if len(radio_lines) in (3, 4, 5):
@@ -631,7 +559,7 @@ def clean_question_text(text: str) -> str:
 
             candidate_options = list(range(q_idx + 1 if q_idx != -1 else max(0, footer_idx - 4), footer_idx))
             if len(candidate_options) in (3, 4, 5):
-                if not any(re.match(r"^[A-Ea-e][\)\.]\s+", lines[ci]) for ci in candidate_options):
+                if not any(re.match(option_label_re, lines[ci]) for ci in candidate_options):
                     letters = ["A", "B", "C", "D", "E"]
                     for idx, ci in enumerate(candidate_options):
                         lines[ci] = f"{letters[idx]}) {lines[ci]}"
@@ -844,17 +772,14 @@ def capture_scroll_region(
 
 class LLMClient:
     """OpenAI-compatible chat completions client.
-    Streams deltas, rotates keys on 429/auth errors, chains endpoints on failure."""
+    Streams deltas, rotates keys with per-key quota cooldown memory, and chains endpoints on failure."""
 
     def __init__(self) -> None:
         self.session = requests.Session()
+        if self.session is not None:
+            self.session.trust_env = False  # Bypass Windows WPAD proxy discovery stalls
         self._cooldown: dict[str, float] = {}
-        # Routing v3 failure memory: per-endpoint and per-origin consecutive
-        # failure streaks drive the exponential cooldown multipliers; both are
-        # cleared on the next success from that chain slice.
-        self._fail_streak: dict[str, int] = {}
-        self._origin_streak: dict[str, int] = {}
-        self._copilot_lock = threading.Lock()
+        self._key_cooldown: dict[str, float] = {}
 
     def stream(
         self,
@@ -867,12 +792,7 @@ class LLMClient:
         only: Optional[list[str]] = None,
         ignore_cooldown: bool = False,
     ) -> tuple[str, str]:
-        """Try configured order, promoting vision endpoints only when OCR is weak.
-
-        Routing v3 additions:
-          only: restrict the chain to these endpoint names (config order kept).
-          ignore_cooldown: for tie-break calls that outrank the cooldown economy.
-        """
+        """Try configured order, promoting vision endpoints only when OCR is weak."""
         last_err: Any = "no endpoints configured"
         if not cfg.get("vision_enabled", True):
             image_b64 = None
@@ -891,8 +811,7 @@ class LLMClient:
                 + [ep for ep in endpoints if not endpoint_supports_vision(ep)]
             )
 
-        # Drop endpoints whose API key can never resolve: they only burn the
-        # fallback chain. Keys are resolved (and cached) at startup.
+        # Drop endpoints whose API key can never resolve.
         eligible: list[dict[str, Any]] = []
         for ep in endpoints:
             name = ep.get("name", ep.get("url", "?"))
@@ -901,8 +820,6 @@ class LLMClient:
             else:
                 log(f"LLM: '{name}' skipped (no API key resolved)")
 
-        # Skip endpoints cooling down for center failures; requests-level
-        # failures grow their wait exponentially (see _mark_failure).
         now = time.monotonic()
         live = [
             ep for ep in eligible
@@ -910,8 +827,6 @@ class LLMClient:
             or self._cooldown.get(ep.get("name", ep.get("url", "?")), 0.0) <= now
         ]
         if eligible and not live:
-            # User-initiated retry with everything cooling? Try the stalest
-            # candidate instead of hard-failing the question.
             warmest = min(
                 eligible,
                 key=lambda e: self._cooldown.get(e.get("name", e.get("url", "?")), 0.0),
@@ -942,43 +857,22 @@ class LLMClient:
                     log(f"LLM: '{name}' response rejected by complete-answer validation: {result[:300]!r}")
                     raise RuntimeError("Model returned invalid/incomplete response")
 
-                # Success: clear cooldown and failure streaks for this slice
                 self._cooldown.pop(name, None)
-                self._fail_streak.pop(name, None)
-                self._origin_streak.pop(self._origin_of(ep), None)
                 return result, name
             except Exception as e:
                 log(f"LLM: '{name}' failed: {type(e).__name__}: {e}")
-                detail = f"{type(e).__name__}: {e}"
-                # Provider-scoped failures cool every endpoint on that origin:
-                #   - connection failures: host is down, all models use it;
-                #   - 429/401: keys and quotas live on one provider backend,
-                #     so exhaustion hits every model routed through it.
-                # HTTP 5xx / stream stalls are model-pool-scoped and stay
-                # local (evidence: the generalist alias served while specific
-                # copilot models returned 503 resource pressure).
-                shared = (
-                    "connection error" in detail
-                    or "HTTP 429" in detail
-                    or "HTTP 401" in detail
-                    or ("timeout" in detail and "wall budget" not in detail)
-                )
-                self._mark_failure(cfg, ep, full_enabled, shared)
+                detail = str(e)
+                base_cd = float(cfg.get("endpoint_cooldown_sec", 15))
+                if "HTTP 429" in detail or "HTTP 401" in detail or "HTTP 403" in detail:
+                    base_cd = max(base_cd, 60.0)
+                self._cooldown[name] = time.monotonic() + base_cd
                 last_err = e
 
         raise RuntimeError(f"All endpoints failed. Last error type: {type(last_err).__name__}")
 
     @staticmethod
     def _complete_answer(content: str) -> bool:
-        """Accept only fully-formed answers; incomplete stream prefixes fall through.
-
-        Accepts:
-          1. Strict JSON with a non-empty 'answer' value.
-          2. A fenced ```json block containing such an object.
-          3. Prose containing exactly one <letter>) <text> answer line.
-        The streaming char-scan half of extract_answer deliberately does NOT
-        count as complete — a truncated stream must keep falling through.
-        """
+        """Accept only fully-formed answers; incomplete stream prefixes fall through."""
         if not content or not content.strip():
             return False
         s = content.strip()
@@ -1006,64 +900,13 @@ class LLMClient:
                     except (ValueError, TypeError):
                         continue
 
-        # JSON-shaped but unparseable (truncated stream): try to salvage a partial
-        # answer before rejecting, so a reasoning model that cut off mid-JSON
-        # still contributes its letter instead of forcing a full fallback.
         if s.startswith("{") or s.startswith("["):
-            if re.search(r"answer", s, re.IGNORECASE) and re.search(r'[A-Ea-e]\)', s):
-                return True
             return False
 
-        # Prose fallback: exactly one answer line. An echoed option list
-        # (A) ... B) ... C) ...) is not a final answer and must fall through.
         matches = list(re.finditer(
             r"\b([A-Ea-e])[)\.]\s*([^\n]+?)(?=\n|$|[A-Ea-e][)\.]\s|\Z)", s,
         ))
         return len(matches) == 1
-
-    @staticmethod
-    def _origin_of(ep: dict[str, Any]) -> str:
-        """Host-level identity of an endpoint (env override respected)."""
-        url = str(ep.get("url", ""))
-        env = ep.get("url_env")
-        if env:
-            url = os.environ.get(env) or url
-        tail = url.split("//", 1)[-1]
-        return tail.split("/", 1)[0].lower()
-
-    def _mark_failure(
-        self,
-        cfg: dict[str, Any],
-        ep: dict[str, Any],
-        full_enabled: list[dict[str, Any]],
-        shared: bool,
-    ) -> None:
-        """Record one failed attempt: exponential cooldown per endpoint, and
-        when the failure is connection-level, cool every sibling that shares
-        the same origin so a dead host costs one attempt, not five."""
-        name = ep.get("name", ep.get("url", "?"))
-        base = float(cfg.get("endpoint_cooldown_sec", 60))
-        streak = self._fail_streak.get(name, 0) + 1
-        self._fail_streak[name] = streak
-        origin = self._origin_of(ep)
-        if shared:
-            o_streak = self._origin_streak.get(origin, 0) + 1
-            self._origin_streak[origin] = o_streak
-        else:
-            o_streak = self._origin_streak.get(origin, 0)
-        exponent = min(max(streak, o_streak) - 1, 4)  # base ×2 → ×16 cap
-        due = time.monotonic() + base * (2 ** exponent)
-        self._cooldown[name] = max(self._cooldown.get(name, 0.0), due)
-        if shared:
-            for other in full_enabled:
-                other_name = other.get("name", other.get("url", "?"))
-                if other_name == name:
-                    continue
-                if self._origin_of(other) != origin:
-                    continue
-                self._cooldown[other_name] = max(
-                    self._cooldown.get(other_name, 0.0), due
-                )
 
     def _stream_one(
         self,
@@ -1074,14 +917,6 @@ class LLMClient:
         image_b64: Optional[str] = None,
         prefer_vision: bool = False,
     ) -> str:
-        if ep.get("transport") == "github-copilot-sdk":
-            return self._stream_copilot_sdk(
-                text, cfg, ep, on_chunk,
-                image_b64=image_b64,
-                prefer_vision=prefer_vision,
-            )
-
-        # Resolve URL: env override takes precedence
         url_env = ep.get("url_env")
         if url_env:
             url = os.environ.get(url_env) or ep["url"]
@@ -1093,14 +928,19 @@ class LLMClient:
         max_retries = ep.get("max_retries", 0)
         is_deepseek = "deepseek" in model.lower() and "api.deepseek.com" in url.lower()
 
-        # Resolve keys BEFORE attempts
         api_keys = endpoint_api_keys(cfg, ep)
         if not api_keys:
             raise RuntimeError(f"no API keys available for '{name}'")
 
-        # Overall per-endpoint wall budget starts BEFORE HTTP request
-        total_timeout_sec = float(ep.get("total_timeout_sec", 10))
-        deadline = time.monotonic() + total_timeout_sec
+        # Filter out keys currently cooling from HTTP 429 / 401 / 403 so subsequent
+        # questions immediately use the healthy key without wasting time on a dead key.
+        now_key = time.monotonic()
+        live_keys = [k for k in api_keys if self._key_cooldown.get(k, 0.0) <= now_key]
+        if not live_keys:
+            live_keys = [min(api_keys, key=lambda k: self._key_cooldown.get(k, 0.0))]
+
+        total_timeout_sec = float(ep.get("total_timeout_sec", 5.0))
+        ep_read = float(ep.get("timeout_sec", 3.5))
 
         supports_vision = endpoint_supports_vision(ep)
         prompt_text = "" if (prefer_vision and image_b64 and supports_vision) else text
@@ -1118,11 +958,8 @@ class LLMClient:
         else:
             user_content = user_prompt_instruction
 
-        # Per-endpoint token budget overrides the global default so heavy
-        # ranks (deep reasoners) can finish instead of emitting truncated JSON.
-        token_limit = max(128, int(ep.get("max_tokens") or cfg.get("max_tokens") or 512))
+        token_limit = max(128, int(ep.get("max_tokens") or cfg.get("max_tokens") or 256))
 
-        # Build payload (shared across all key attempts for this endpoint)
         payload: dict[str, Any] = {
             "model": model,
             "stream": True,
@@ -1139,17 +976,14 @@ class LLMClient:
         if ep.get("supports_response_format", True):
             payload["response_format"] = {"type": "json_object"}
 
-        # DeepSeek reasoner-specific parameters
         if is_deepseek and "reasoner" in model.lower():
             payload["max_tokens"] = max(token_limit, 4096)
             payload.pop("response_format", None)
             payload.pop("temperature", None)
 
-        # Terra models reject temperature parameter
-        if "terra" in model.lower():
+        if "terra" in model.lower() or "luna" in model.lower():
             payload.pop("temperature", None)
 
-        # Optional payload_overrides: merge except protected keys
         overrides = ep.get("payload_overrides")
         if overrides:
             for k, v in overrides.items():
@@ -1159,7 +993,6 @@ class LLMClient:
                     else:
                         payload[k] = v
 
-        # Base headers (auth filled in per-key below)
         base_headers: dict[str, str] = {
             "Content-Type": "application/json",
             "User-Agent": "TA-Grader/1.0",
@@ -1173,24 +1006,21 @@ class LLMClient:
             base_headers.update(ep["headers"])
 
         last_err = "unknown"
-        for api_key in api_keys:
-            # Check remaining wall budget before each key attempt
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
-                last_err = "wall budget exhausted before request"
-                break
-
+        for api_key in live_keys:
+            # Each key gets its own fresh attempt deadline so a fast 429 on key #1
+            # never starves key #2's timeout budget.
+            key_start = time.monotonic()
+            deadline = key_start + total_timeout_sec
+            ttft_deadline = key_start + ep_read
             headers = {**base_headers, "Authorization": f"Bearer {api_key}"}
 
-            for attempt in range(max_retries + 1):
+            for _attempt in range(max_retries + 1):
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:
                     last_err = "wall budget exhausted"
                     break
 
-                # Connect timeout: min(3, remaining); Read timeout: min(ep_read, remaining)
-                ep_read = float(ep.get("timeout_sec", remaining))
-                connect_to = min(3.0, remaining)
+                connect_to = min(2.5, remaining)
                 read_to = min(ep_read, remaining)
                 if read_to <= 0:
                     last_err = "wall budget exhausted (read timeout <= 0)"
@@ -1208,7 +1038,9 @@ class LLMClient:
                         for raw_line in r.iter_lines(chunk_size=1):
                             now = time.monotonic()
                             if now >= deadline:
-                                raise TimeoutError(f"stream exceeded wall budget")
+                                raise TimeoutError("stream exceeded wall budget")
+                            if not seen_content and now >= ttft_deadline:
+                                raise TimeoutError("stream exceeded TTFT budget (keepalive/reasoning stall)")
                             if not raw_line:
                                 continue
                             line = raw_line.decode("utf-8", errors="replace")
@@ -1219,6 +1051,8 @@ class LLMClient:
                                 break
                             try:
                                 obj = json.loads(data)
+                                if obj.get("id") == "chatcmpl-keepalive" or obj.get("model") == "keepalive":
+                                    continue
                                 if "error" in obj:
                                     raise RuntimeError("mid-stream error")
                                 choices = obj.get("choices") or []
@@ -1226,26 +1060,26 @@ class LLMClient:
                                     continue
                                 delta = choices[0].get("delta") or {}
                                 content = delta.get("content") or ""
-                                # reasoning_content (DeepSeek) intentionally ignored
                                 if content:
                                     accumulated_content = (
                                         content if not seen_content
                                         else accumulated_content + content
                                     )
                                     seen_content = True
-                                    # Preview every non-empty response. The caller keeps
-                                    # the last output visible even if it is malformed.
                                     on_chunk(accumulated_content, name)
                             except (json.JSONDecodeError, IndexError, TypeError):
                                 pass
 
                         if accumulated_content:
+                            self._key_cooldown.pop(api_key, None)
                             return accumulated_content
                         last_err = "empty response from model"
                     elif r.status_code in (401, 403, 429):
                         last_err = f"HTTP {r.status_code}"
-                        log(f"LLM: '{name}' HTTP {r.status_code}, rotating key")
-                        break  # try next key within shared deadline
+                        key_cd = 60.0 if r.status_code == 429 else 3600.0
+                        self._key_cooldown[api_key] = time.monotonic() + key_cd
+                        log(f"LLM: '{name}' HTTP {r.status_code}, cooling key for {key_cd:.0f}s and rotating")
+                        break
                     elif r.status_code >= 500:
                         detail = (r.text or "").replace("\n", " ")[:300]
                         last_err = f"HTTP {r.status_code}: {detail}"
@@ -1272,98 +1106,6 @@ class LLMClient:
                         r.close()
 
         raise RuntimeError(f"all keys failed for '{name}': {last_err}")
-
-    def _stream_copilot_sdk(
-        self,
-        text: str,
-        cfg: dict[str, Any],
-        ep: dict[str, Any],
-        on_chunk: Callable[[str, str], None],
-        image_b64: Optional[str] = None,
-        prefer_vision: bool = False,
-    ) -> str:
-        """Stream a response through the official GitHub Copilot SDK."""
-        import asyncio
-        from copilot import CopilotClient
-        from copilot.session_events import AssistantMessageData, AssistantMessageDeltaData
-
-        name = ep.get("name", "github-copilot-sdk")
-        api_keys = endpoint_api_keys(cfg, ep)
-        if not api_keys:
-            raise RuntimeError(f"no API keys available for '{name}'")
-
-        supports_vision = endpoint_supports_vision(ep)
-        prompt_text = "" if (prefer_vision and image_b64 and supports_vision) else text
-        user_prompt = (
-            (prompt_text + "\n\n" if prompt_text else "")
-            + "Solve the multiple-choice question shown. Remember: Output ONLY the JSON object. "
-            + "Do not include any introduction or markdown. Start directly with '{'."
-        )
-        if image_b64 and supports_vision:
-            user_prompt += f"\n\nImage (JPEG base64): {image_b64}"
-
-        async def run(token: str) -> str:
-            client = CopilotClient(
-                github_token=token,
-                use_logged_in_user=False,
-                mode="empty",
-                base_directory=str(Path(tempfile.gettempdir()) / "TA-Grader-Copilot"),
-            )
-            try:
-                await client.start()
-                session = await client.create_session(
-                    model=ep.get("model", "gpt-5-mini"),
-                    streaming=True,
-                    available_tools=[],
-                    enable_session_store=False,
-                    system_message={"mode": "replace", "content": cfg["system_prompt"]},
-                )
-                accumulated = ""
-
-                def handle_event(event: Any) -> None:
-                    nonlocal accumulated
-                    data = getattr(event, "data", None)
-                    if isinstance(data, AssistantMessageDeltaData) and data.delta_content:
-                        accumulated += data.delta_content
-                        on_chunk(accumulated, name)
-
-                session.on(handle_event)
-                response = await session.send_and_wait(
-                    user_prompt,
-                    timeout=float(ep.get("timeout_sec", 30)),
-                )
-                data = getattr(response, "data", None)
-                if isinstance(data, AssistantMessageData) and data.content:
-                    accumulated = data.content
-                    on_chunk(accumulated, name)
-                if not accumulated:
-                    raise RuntimeError("Copilot SDK returned an empty response")
-                return accumulated
-            finally:
-                await client.stop()
-
-        last_error: Exception | None = None
-        total_timeout = float(ep.get("total_timeout_sec", 45))
-        deadline = time.monotonic() + total_timeout
-        if not self._copilot_lock.acquire(timeout=total_timeout):
-            raise TimeoutError(f"Copilot SDK busy for more than {total_timeout:.0f}s")
-        try:
-            for token in api_keys:
-                try:
-                    remaining = deadline - time.monotonic()
-                    if remaining <= 0:
-                        raise TimeoutError("Copilot SDK queue wait exhausted endpoint timeout")
-                    request_started = time.monotonic()
-                    log(f"LLM: '{name}' SDK session starting")
-                    result = asyncio.run(asyncio.wait_for(run(token), timeout=remaining))
-                    log(f"LLM: '{name}' SDK completed in {time.monotonic() - request_started:.1f}s")
-                    return result
-                except Exception as exc:
-                    last_error = exc
-                    log(f"LLM: '{name}' SDK request failed: {type(exc).__name__}")
-        finally:
-            self._copilot_lock.release()
-        raise RuntimeError(f"Copilot SDK failed for '{name}': {type(last_error).__name__}")
 
 
 
@@ -2225,124 +1967,6 @@ class App:
         ).start()
 
     # ------------------------------------------------------------------
-    # Vision consensus — weak-OCR second opinion (routing v3)
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _confirm_vision_answers(cfg: dict[str, Any]) -> bool:
-        return str(cfg.get("confirm_vision_answers", True)).strip().lower() not in ("false", "0", "no")
-
-    @staticmethod
-    def _model_letter(answer: Optional[str]) -> Optional[str]:
-        m = re.match(r"\s*([A-Ea-e])[\)\.]", (answer or "").strip())
-        return m.group(1).upper() if m else None
-
-    def _verify_vision_answer(
-        self,
-        text: str,
-        cfg: dict[str, Any],
-        image_b64: Optional[str],
-        first_answer: str,
-        first_endpoint: str,
-        placeholder: tk.Toplevel,
-    ) -> tuple[str, str]:
-        """Second opinion for weak-OCR (vision-first) runs only.
-
-        1. Cross-check with one different-provider-family endpoint (config order).
-        2. Agreement → answer marked confirmed.
-        3. Disagreement → tie-break via cfg['escalation_endpoints'] (deep models),
-           ignoring cooldowns for that call.
-        Returns (final display text, endpoint label). Tk stays on root.after.
-        """
-        first_letter = self._model_letter(first_answer)
-        first_ep = next(
-            (e for e in cfg.get("endpoints", []) if e.get("name") == first_endpoint),
-            None,
-        )
-        if first_ep is None or first_letter is None:
-            return first_answer, first_endpoint
-
-        origin = self.llm._origin_of(first_ep)
-        checker = next(
-            (
-                e for e in cfg.get("endpoints", [])
-                if e.get("enabled", True)
-                and e.get("name") != first_endpoint
-                and self.llm._origin_of(e) != origin
-            ),
-            None,
-        )
-        if checker is None:
-            return first_answer, first_endpoint
-        checker_name = checker.get("name", checker.get("url", "?"))
-
-        def quiet_chunk(_acc: str, _ep: str) -> None:
-            pass
-
-        def confirm_status(ep_name: str) -> None:
-            self.root.after(
-                0,
-                lambda n=ep_name: self.overlays.update(
-                    placeholder, f"{first_answer}\n\nsecond opinion… [{n}]"
-                ),
-            )
-
-        try:
-            second_raw, second_name = self.llm.stream(
-                text, cfg, quiet_chunk,
-                image_b64=image_b64,
-                on_status=confirm_status,
-                prefer_vision=True,
-                only=[checker_name],
-            )
-        except Exception as e:
-            log(f"consensus check skipped ({type(e).__name__})")
-            return first_answer, first_endpoint
-
-        second_answer = extract_answer(second_raw)
-        second_letter = self._model_letter(second_answer)
-        if second_letter is None:
-            return first_answer, f"{first_endpoint} (2nd unparsed)"
-        if second_letter == first_letter:
-            return f"{first_answer}\n[confirmed by {second_name}]", first_endpoint
-
-        self.root.after(
-            0,
-            lambda: self.overlays.update(
-                placeholder,
-                f"{first_answer}\nmodels disagree ({first_letter} vs {second_letter}) — tie-break…",
-            ),
-        )
-        escalation = [
-            n for n in (cfg.get("escalation_endpoints") or ["omniroute-copilot-sonnet-5"])
-            if n not in (first_endpoint, checker_name)
-        ]
-        if not escalation:
-            return f"{first_answer} | disagree: {second_answer}", "disagreed (no tie-break)"
-        try:
-            third_raw, third_name = self.llm.stream(
-                text, cfg, quiet_chunk,
-                image_b64=image_b64,
-                on_status=confirm_status,
-                prefer_vision=True,
-                only=escalation,
-                ignore_cooldown=True,
-            )
-            third_answer = extract_answer(third_raw)
-        except Exception as e:
-            log(f"tie-break failed ({type(e).__name__})")
-            return f"{first_answer} | disagree: {second_answer}", f"{first_endpoint} (tie-break failed)"
-
-        third_letter = self._model_letter(third_answer)
-        if third_letter == first_letter:
-            return f"{first_answer}\n[confirmed by {third_name}]", f"{first_endpoint}+{third_name}"
-        if third_letter == second_letter:
-            return f"{second_answer}\n[tie-break by {third_name}]", third_name
-        if third_answer:
-            return f"{third_answer}\n[deep tie-break by {third_name}]", third_name
-        return f"{first_answer} | disagree: {second_answer}", f"{first_endpoint} (tie-break empty)"
-
-    # ------------------------------------------------------------------
     # Shared LLM worker — runs on a background thread
     # ------------------------------------------------------------------
 
@@ -2375,24 +1999,11 @@ class App:
             )
             final_answer = extract_answer(final_raw)
             if not final_answer:
-                # Log the full raw response so we can diagnose extraction failures
                 log(f"extract_answer failed. endpoint={endpoint_used!r} raw={final_raw!r}")
                 final_answer = "⚠ No answer found.\n\nTry selecting a larger region or re-copying the text."
 
-            # Routing v3: weak-OCR answers get one cross-check from a different
-            # provider family; deep models tie-break on disagreement.
             display = final_answer
             ep_label = endpoint_used
-            if (
-                prefer_vision
-                and image_b64
-                and final_answer
-                and self._confirm_vision_answers(self.cfg)
-                and self._model_letter(final_answer)
-            ):
-                display, ep_label = self._verify_vision_answer(
-                    text, self.cfg, image_b64, final_answer, endpoint_used, placeholder
-                )
 
             log(
                 f"Input question ({len(text)} chars, image={'yes' if image_b64 else 'no'}, "

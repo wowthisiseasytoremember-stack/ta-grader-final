@@ -1,5 +1,23 @@
 # Changelog — TA Grader
 
+## 2026-11-01 21:38 UTC — tabula rasa audit & architecture reset
+
+Empirical log audit + live 40-endpoint benchmark drove a full simplification of `TA_Grader.py` and `config.json`:
+
+### Fixed
+- **Eliminated 46-second outage cascades:** Replaced 28 stale/disabled endpoints in `config.json` with 5 live-verified sub-2s endpoints across 4 independent backends:
+  1. `gemini-flash-lite` (`gemini-3.1-flash-lite` direct, 1.11s warm p50, 2 keys, native vision)
+  2. `opencode-haiku` (`claude-haiku-5-5` direct via OpenCode Go, 1.47s warm p50)
+  3. `omniroute-haiku` (`no-think/github/claude-haiku-4.5` via LAN `192.168.1.200:20128`, 0.82s warm p50, native vision)
+  4. `omniroute-terra` (`no-think/github/gpt-5.6-terra` via LAN `192.168.1.200:20128`, 1.14s warm p50, native vision)
+  5. `xai-grok-fast` (`grok-4.20-0309-non-reasoning` direct via xAI, 2.31s warm p50, native vision)
+- **Added per-key quota cooldown memory (`_key_cooldown`):** When a key returns `HTTP 429` (60s cooldown) or `401/403` (3600s cooldown), `LLMClient` remembers the exhausted key across subsequent questions and gives the next key in rotation a fresh timeout budget.
+- **Blocked infinite `chatcmpl-keepalive` stream stalls:** `_stream_one` now ignores synthetic `keepalive` SSE frames and enforces a strict Time-To-First-Token (`ttft_deadline`) budget so hung proxy aliases fail in ~3s instead of 20s.
+- **Bypassed Windows WPAD proxy stalls:** Set `self.session.trust_env = False` on `LLMClient`.
+- **Fixed `clean_question_text` option corruption:** Recognized `a.)` / `b.)` / `c.)` (and normalized OCR'd `¢.)` / `©.)` to `c.)`) so multi-line Sophia options are never double-prefixed (`A) a.)`) or split into fake `D) parties` options.
+- **Moved `ta_grader.log` to project directory:** `LOG_PATH` now writes directly to `C:\Users\wowth\Desktop\TA-Grader\ta_grader.log` (with fallback to `%TEMP%\ta_grader.log`).
+- **Deleted ~450 lines of dead code:** Removed `_stream_copilot_sdk`, `_verify_vision_answer` multi-model consensus/tie-break loops, and exponential origin-streak cascades.
+
 ## 2026-10-30 03:05 UTC — routing v3: provider-interleaved chain, cooldown economics, vision consensus
 
 Goal: fastest model that is not garbage. Log evidence (2,733 runs) drove every change.

@@ -1,9 +1,9 @@
 {
   "fixed_ocr_region": [
-    12,
-    406,
-    1031,
-    1109
+    2,
+    306,
+    1038,
+    1270
   ],
   "scroll_region": null,
   "auto_scroll_region": null,
@@ -22,171 +22,93 @@
   "max_overlay_height_px": 280,
   "tesseract_path": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe",
   "tesseract_psm": 6,
-  "ocr_min_confidence": 75.0,
+  "ocr_min_confidence": 65.0,
   "ocr_min_option_markers": 3,
   "doppler_project": "ichabod",
-  "system_prompt": "You are a master academic answer-key assistant across all college disciplines: Mathematics, Calculus, Statistics, Business, Finance, Accounting, Marketing, Law, History, Economics, Psychology, Natural Sciences, and Literature.\n\nInstructions:\n1. Solve problems step by step mentally. For math and logic, calculate exact numbers and verify arithmetic.\n2. Pay strict attention to negative question stems (e.g. 'Which is NOT...', 'All of the following EXCEPT...').\n3. Compare all options against each other to identify the definitively correct choice.\n4. Output ONLY valid JSON in this exact format (start directly with '{' and no markdown ticks):\n\n{\"answer\": \"<letter>) <answer text>\"}\n\nWhere <letter> is one of A, B, C, D, E and <answer text> is the complete text of the winning option.",
-  "max_tokens": 512,
+  "doppler_config": "prd",
+  "system_prompt": "You are a master academic answer-key assistant across all college disciplines: Mathematics, Calculus, Statistics, Business, Finance, Accounting, Marketing, Law, History, Economics, Psychology, Natural Sciences, and Literature.\n\nInstructions:\n1. Solve problems step by step mentally. For math and logic, calculate exact numbers and verify arithmetic.\n2. Pay strict attention to negative question stems (e.g. \"Which is NOT...\", \"All of the following EXCEPT...\").\n3. Compare all options against each other to identify the definitively correct choice.\n4. Output ONLY valid JSON in this exact format (start directly with \"{\" and no markdown ticks):\n\n{\"answer\": \"<letter>) <answer text>\"}\n\nWhere <letter> is one of A, B, C, D, E and <answer text> is the complete text of the winning option.",
+  "max_tokens": 256,
   "temperature": 0.2,
   "endpoints": [
     {
-      "name": "yolo-auto-flash",
-      "url": "https://yolo-auto.com/v1/chat/completions",
-      "model": "qwen3.8-27b",
-      "key_env": [
-        "YOLO_AUTO_API_KEY_2",
-        "YOLO_AUTO_API_KEY"
-      ],
-      "timeout_sec": 5,
-      "max_retries": 0,
-      "supports_response_format": false,
-      "supports_vision": false,
-      "total_timeout_sec": 8
-    },
-    {
-      "name": "omniroute-copilot-mini",
-      "url": "http://192.168.1.200:20128/v1/chat/completions",
-      "url_env": "OMNIROUTE_CHAT_URL",
-      "model": "github/gpt-4o-mini",
-      "key_env": [
-        "OMNIROUTE_API_KEY"
-      ],
-      "timeout_sec": 6,
-      "total_timeout_sec": 9,
-      "max_retries": 0,
-      "supports_response_format": false,
-      "supports_vision": false,
-      "enabled": true
-    },
-    {
-      "name": "omniroute-antigravity-lite",
-      "url": "http://192.168.1.200:20128/v1/chat/completions",
-      "url_env": "OMNIROUTE_CHAT_URL",
-      "model": "antigravity/gemini-3.1-flash-lite",
-      "key_env": [
-        "OMNIROUTE_API_KEY"
-      ],
-      "timeout_sec": 8,
-      "total_timeout_sec": 12,
-      "max_retries": 0,
-      "supports_response_format": false,
-      "supports_vision": true,
-      "enabled": true
-    },
-    {
-      "name": "omniroute-copilot-gpt5-mini",
-      "url": "http://192.168.1.200:20128/v1/chat/completions",
-      "url_env": "OMNIROUTE_CHAT_URL",
-      "model": "github/gpt-5-mini",
-      "key_env": [
-        "OMNIROUTE_API_KEY"
-      ],
-      "timeout_sec": 6,
-      "total_timeout_sec": 9,
-      "max_retries": 0,
-      "supports_response_format": false,
-      "supports_vision": false,
-      "enabled": true
-    },
-    {
-      "name": "omniroute-antigravity-flash",
-      "url": "http://192.168.1.200:20128/v1/chat/completions",
-      "url_env": "OMNIROUTE_CHAT_URL",
-      "model": "antigravity/gemini-3.5-flash-lite",
-      "key_env": [
-        "OMNIROUTE_API_KEY"
-      ],
-      "timeout_sec": 8,
-      "total_timeout_sec": 12,
-      "max_retries": 0,
-      "supports_response_format": false,
-      "supports_vision": true,
-      "enabled": true
-    },
-    {
-      "name": "omniroute-yolo",
-      "url": "http://192.168.1.200:20128/v1/chat/completions",
-      "url_env": "OMNIROUTE_CHAT_URL",
-      "model": "yolo-auto/qwen3.8-27b",
-      "key_env": [
-        "OMNIROUTE_API_KEY"
-      ],
-      "timeout_sec": 6,
-      "total_timeout_sec": 9,
-      "max_retries": 0,
-      "supports_response_format": false,
-      "supports_vision": false,
-      "enabled": true
-    },
-    {
-      "name": "omniroute-ollama-cloud",
-      "url": "http://192.168.1.200:20128/v1/chat/completions",
-      "url_env": "OMNIROUTE_CHAT_URL",
-      "model": "ollama-cloud/glm-5.3-flash",
-      "key_env": [
-        "OMNIROUTE_API_KEY"
-      ],
-      "timeout_sec": 6,
-      "total_timeout_sec": 9,
-      "max_retries": 0,
-      "supports_response_format": false,
-      "supports_vision": false,
-      "enabled": false
-    },
-    {
-      "name": "gemini-flash",
+      "name": "gemini-flash-lite",
       "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-      "model": "gemini-2.5-flash",
+      "model": "gemini-3.1-flash-lite",
       "key_env": [
         "GEMINI_API_KEY",
         "GEMINI_FLASH_KEY_2"
       ],
-      "timeout_sec": 6,
+      "timeout_sec": 3.5,
+      "total_timeout_sec": 5.0,
       "max_retries": 0,
       "supports_response_format": true,
       "supports_vision": true,
-      "total_timeout_sec": 9
+      "enabled": true,
+      "max_tokens": 256
     },
     {
-      "name": "openai-gpt-4o-mini",
-      "url": "https://api.openai.com/v1/chat/completions",
-      "model": "gpt-4o-mini",
+      "name": "opencode-haiku",
+      "url": "https://opencode.ai/zen/go/v1/chat/completions",
+      "model": "claude-haiku-5-5",
       "key_env": [
-        "OPENAI_API_KEY"
+        "OPENCODEGOTAGRADER"
       ],
-      "timeout_sec": 6,
+      "timeout_sec": 3.5,
+      "total_timeout_sec": 4.5,
       "max_retries": 0,
-      "supports_response_format": true,
-      "supports_vision": true,
-      "total_timeout_sec": 9
-    },
-    {
-      "name": "nvidia-llama-3.2-11b-vision",
-      "url": "https://integrate.api.nvidia.com/v1/chat/completions",
-      "model": "meta/llama-3.2-11b-vision-instruct",
-      "key_env": [
-        "NVIDIA_API_KEY"
-      ],
-      "timeout_sec": 6,
-      "max_retries": 0,
-      "supports_response_format": true,
-      "supports_vision": true,
-      "total_timeout_sec": 9
-    },
-    {
-      "name": "nvidia-nemotron-lightning",
-      "url": "https://integrate.api.nvidia.com/v1/chat/completions",
-      "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
-      "key_env": [
-        "NVIDIA_API_KEY"
-      ],
-      "timeout_sec": 6,
-      "max_retries": 0,
-      "supports_response_format": true,
+      "supports_response_format": false,
       "supports_vision": false,
-      "total_timeout_sec": 9
+      "enabled": true,
+      "max_tokens": 256
+    },
+    {
+      "name": "omniroute-haiku",
+      "url": "http://192.168.1.200:20128/v1/chat/completions",
+      "url_env": "OMNIROUTE_CHAT_URL",
+      "model": "no-think/github/claude-haiku-4.5",
+      "key_env": [
+        "OMNIROUTE_API_KEY"
+      ],
+      "timeout_sec": 3.0,
+      "total_timeout_sec": 3.5,
+      "max_retries": 0,
+      "supports_response_format": false,
+      "supports_vision": true,
+      "enabled": true,
+      "max_tokens": 256
+    },
+    {
+      "name": "omniroute-terra",
+      "url": "http://192.168.1.200:20128/v1/chat/completions",
+      "url_env": "OMNIROUTE_CHAT_URL",
+      "model": "no-think/github/gpt-5.6-terra",
+      "key_env": [
+        "OMNIROUTE_API_KEY"
+      ],
+      "timeout_sec": 3.5,
+      "total_timeout_sec": 4.0,
+      "max_retries": 0,
+      "supports_response_format": false,
+      "supports_vision": true,
+      "enabled": true,
+      "max_tokens": 256
+    },
+    {
+      "name": "xai-grok-fast",
+      "url": "https://api.x.ai/v1/chat/completions",
+      "model": "grok-4.20-0309-non-reasoning",
+      "key_env": [
+        "XAI_API_KEY"
+      ],
+      "timeout_sec": 4.5,
+      "total_timeout_sec": 5.5,
+      "max_retries": 0,
+      "supports_response_format": true,
+      "supports_vision": true,
+      "enabled": true,
+      "max_tokens": 256
     }
   ],
-  "endpoint_cooldown_sec": 60,
-  "routing_version": 2
+  "endpoint_cooldown_sec": 15,
+  "vision_enabled": true
 }

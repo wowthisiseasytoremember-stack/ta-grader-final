@@ -77,7 +77,8 @@ class MathOcrRegressionTests(unittest.TestCase):
         self.assertIn("3-\n2", clean_question_text(question))
 
     def test_rational_numbers_lesson_routes_to_vision(self):
-        # High OCR confidence and complete option labels route to vision when math mode is opt-in enabled
+        # High OCR confidence and complete option labels used to route this to
+        # a text-only endpoint, even though fraction notation is fragile.
         text = (
             "Rational Numbers: Which expression is equivalent to 3/4?\n"
             "A) 6/8\nB) 3/8\nC) 4/3\nD) 7/4"
@@ -85,21 +86,9 @@ class MathOcrRegressionTests(unittest.TestCase):
         usable, _reason = assess_ocr_quality(
             text,
             98.0,
-            {"ocr_min_confidence": 75.0, "ocr_min_option_markers": 3, "enable_math_mode": True},
+            {"ocr_min_confidence": 75.0, "ocr_min_option_markers": 3},
         )
-        self.assertFalse(usable, "fraction math should trigger the vision-first path when math mode is enabled")
-
-    def test_math_mode_disabled_by_default_keeps_text_ocr(self):
-        text = (
-            "Rational Numbers: Which expression is equivalent to 3/4?\n"
-            "A) 6/8\nB) 3/8\nC) 4/3\nD) 7/4"
-        )
-        usable, _reason = assess_ocr_quality(
-            text,
-            98.0,
-            {"ocr_min_confidence": 75.0, "ocr_min_option_markers": 3, "enable_math_mode": False},
-        )
-        self.assertTrue(usable, "text OCR should remain usable when math mode is turned off")
+        self.assertFalse(usable, "fraction math should trigger the vision-first path")
 
     def test_absolute_value_inequalities_lesson_routes_to_vision(self):
         text = (
@@ -115,7 +104,7 @@ class MathOcrRegressionTests(unittest.TestCase):
         usable, reason = assess_ocr_quality(
             text,
             95.0,
-            {"ocr_min_confidence": 75.0, "ocr_min_option_markers": 3, "enable_math_mode": True},
+            {"ocr_min_confidence": 75.0, "ocr_min_option_markers": 3},
         )
         self.assertFalse(usable, "absolute value inequalities should trigger vision-first path")
         self.assertEqual(reason, "math notation requires visual verification")
@@ -132,7 +121,7 @@ class MathOcrRegressionTests(unittest.TestCase):
         usable, reason = assess_ocr_quality(
             text,
             95.0,
-            {"ocr_min_confidence": 75.0, "ocr_min_option_markers": 3, "enable_math_mode": True},
+            {"ocr_min_confidence": 75.0, "ocr_min_option_markers": 3},
         )
         self.assertFalse(usable, "arithmetic sequence should trigger vision-first path")
         self.assertEqual(reason, "math notation requires visual verification")
