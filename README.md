@@ -2,16 +2,20 @@
 
 Canonical Windows desktop app source: [GitHub repository](https://github.com/wowthisiseasytoremember-stack/ta-grader-final). The installed Desktop shortcut starts `C:\Users\wowth\Desktop\TA-Grader\Run_TA_Grader.bat`; that checkout is the copy to run and maintain for the current Windows installation.
 
-## Model order
+## Model order (routing v3 — provider-interleaved, knowledge-speed first)
 
-1. `omniroute-copilot-gpt5.4-mini` (`github/gpt-5.4-mini`) — ~0.9s–1.4s, low/unmetered Copilot quota, native vision
-2. `omniroute-copilot-haiku` (`no-think/github/claude-haiku-4.5`) — ~0.9s, light mini quota, native vision
-3. `yolo-auto-flash` (`qwen3.8-flash` via `yolo-auto.com`) — ~1.2s, thinking disabled, free builder tier
-4. `omniroute-copilot-gemini-flash` (`github/gemini-3.7-flash` via OmniRoute Copilot) — ~3.5s, unmetered, low reasoning, vision support
-5. `omniroute-copilot-sonnet-5` (`github/claude-sonnet-5`) — ~1.0s, deep reasoning fallback reserved for difficult questions
-6. `xai-grok-reasoning` (`grok-4.20-0309-reasoning`) — ~4.8s, reasoning enabled for complex logic
-7. `opencode-deepseek-vision` (`deepseek-v4-flash-vision-exp` via OpenCode Go) — ~1.6s, native vision
-8. `omniroute-copilot-gpt5.4` (`github/gpt-5.4`) — ~3.1s full reasoning fallback
+Provider diversity is deliberate: quota exhaustion or an outage takes down every model on one provider at once, so ranks alternate across provider backends. Deep-reasoning models sit at the back because algebra questions are rare; they cost seconds and quota.
+
+1. `omniroute-copilot-terra` (`no-think/github/gpt-5.6-terra`) — ~1.4s, native vision, chemistry/math accuracy
+2. `omniroute-copilot-gpt5.4-mini` (`github/gpt-5.4-mini`) — ~0.9–1.4s, 844 historical wins, native vision (re-enabled)
+3. `omniroute-copilot-haiku` (`no-think/github/claude-haiku-4.5`) — ~0.9s, light mini quota, native vision
+4. `yolo-auto-flash` (`qwen3.8-flash` via `yolo-auto.com`) — ~1.2s, thinking disabled, free builder tier, independent provider
+5. `opencode-deepseek-vision` (`deepseek-v4-flash-vision-exp` via OpenCode Go) — ~1.6s, native vision, independent provider
+6. `omniroute-generalist` (`generalist` via OmniRoute) — 889 historical wins (most), most resilient Copilot alias
+7. `omniroute-copilot-gemini-flash` (`github/gemini-3.7-flash`) — ~3.5s, unmetered, vision support
+8. `omniroute-copilot-sonnet-5` (`github/claude-sonnet-5`) — deep reasoning, `max_tokens` 1536
+9. `omniroute-copilot-gpt5.4` (`github/gpt-5.4`) — full reasoning, `max_tokens` 2048
+10. `xai-grok-reasoning` (`grok-4.20-0309-reasoning`) — deep-reasoning emergency rank, `max_tokens` 4096, 16s/22s timeouts, algebra-only by position
 
 
 ## Run and configure

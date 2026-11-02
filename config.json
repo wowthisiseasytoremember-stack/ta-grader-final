@@ -31,37 +31,6 @@
   "temperature": 0.2,
   "endpoints": [
     {
-      "name": "gemini-flash-lite",
-      "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-      "model": "gemini-3.1-flash-lite",
-      "key_env": [
-        "GEMINI_API_KEY",
-        "GEMINI_FLASH_KEY_2"
-      ],
-      "timeout_sec": 3.5,
-      "total_timeout_sec": 5.0,
-      "max_retries": 0,
-      "supports_response_format": true,
-      "supports_vision": true,
-      "enabled": true,
-      "max_tokens": 256
-    },
-    {
-      "name": "opencode-haiku",
-      "url": "https://opencode.ai/zen/go/v1/chat/completions",
-      "model": "claude-haiku-5-5",
-      "key_env": [
-        "OPENCODEGOTAGRADER"
-      ],
-      "timeout_sec": 3.5,
-      "total_timeout_sec": 4.5,
-      "max_retries": 0,
-      "supports_response_format": false,
-      "supports_vision": false,
-      "enabled": true,
-      "max_tokens": 256
-    },
-    {
       "name": "omniroute-haiku",
       "url": "http://192.168.1.200:20128/v1/chat/completions",
       "url_env": "OMNIROUTE_CHAT_URL",
@@ -69,8 +38,8 @@
       "key_env": [
         "OMNIROUTE_API_KEY"
       ],
-      "timeout_sec": 3.0,
-      "total_timeout_sec": 3.5,
+      "timeout_sec": 2.0,
+      "total_timeout_sec": 2.5,
       "max_retries": 0,
       "supports_response_format": false,
       "supports_vision": true,
@@ -85,8 +54,8 @@
       "key_env": [
         "OMNIROUTE_API_KEY"
       ],
-      "timeout_sec": 3.5,
-      "total_timeout_sec": 4.0,
+      "timeout_sec": 2.2,
+      "total_timeout_sec": 2.7,
       "max_retries": 0,
       "supports_response_format": false,
       "supports_vision": true,
@@ -100,11 +69,41 @@
       "key_env": [
         "XAI_API_KEY"
       ],
-      "timeout_sec": 4.5,
-      "total_timeout_sec": 5.5,
+      "timeout_sec": 2.5,
+      "total_timeout_sec": 3.0,
       "max_retries": 0,
       "supports_response_format": true,
       "supports_vision": true,
+      "enabled": true,
+      "max_tokens": 256
+    },
+    {
+      "name": "opencode-beam",
+      "url": "https://opencode.ai/zen/go/v1/chat/completions",
+      "model": "beam-free",
+      "key_env": [
+        "OPENCODEGOTAGRADER"
+      ],
+      "timeout_sec": 2.2,
+      "total_timeout_sec": 2.8,
+      "max_retries": 0,
+      "supports_response_format": false,
+      "supports_vision": false,
+      "enabled": true,
+      "max_tokens": 256
+    },
+    {
+      "name": "opencode-haiku",
+      "url": "https://opencode.ai/zen/go/v1/chat/completions",
+      "model": "claude-haiku-5-5",
+      "key_env": [
+        "OPENCODEGOTAGRADER"
+      ],
+      "timeout_sec": 3.0,
+      "total_timeout_sec": 3.5,
+      "max_retries": 0,
+      "supports_response_format": false,
+      "supports_vision": false,
       "enabled": true,
       "max_tokens": 256
     }

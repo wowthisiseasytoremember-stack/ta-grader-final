@@ -1006,7 +1006,10 @@ class LLMClient:
             base_headers.update(ep["headers"])
 
         last_err = "unknown"
+        endpoint_down = False
         for api_key in live_keys:
+            if endpoint_down:
+                break
             # Each key gets its own fresh attempt deadline so a fast 429 on key #1
             # never starves key #2's timeout budget.
             key_start = time.monotonic()
@@ -1084,6 +1087,7 @@ class LLMClient:
                         detail = (r.text or "").replace("\n", " ")[:300]
                         last_err = f"HTTP {r.status_code}: {detail}"
                         log(f"LLM: '{name}' server error {last_err}")
+                        endpoint_down = True
                         break
                     else:
                         last_err = f"HTTP {r.status_code}"
@@ -1091,10 +1095,12 @@ class LLMClient:
                 except requests.exceptions.Timeout:
                     last_err = "timeout"
                     log(f"LLM: '{name}' timed out")
+                    endpoint_down = True
                     break
                 except requests.exceptions.ConnectionError:
                     last_err = "connection error"
                     log(f"LLM: '{name}' connection error")
+                    endpoint_down = True
                     break
                 except TimeoutError:
                     last_err = "stream wall budget exceeded"
