@@ -17,7 +17,7 @@ entrypoints:
   - TA_Grader.py
   - config.json
   - Run_TA_Grader.bat
-updated: '2026-11-01 21:38 UTC'
+updated: '2026-11-06 19:27 UTC'
 ---
 
 # AGENTS.md — TA Grader
@@ -34,12 +34,13 @@ All screen capture modes use the same adaptive policy:
 4. Strong OCR (`>= 65.0` confidence and `>= 3` option markers) sends clean text to the primary chain.
 5. Weak OCR promotes vision-capable endpoints first and omits the suspect OCR transcript so it cannot bias the visual read.
 
-## Endpoint priority (Tabula Rasa Reset — 5 Verified Sub-2s Endpoints)
-1. `gemini-flash-lite` (`gemini-3.1-flash-lite` via Google AI Studio Direct) — ~1.11s warm p50, 2 rotation keys (`GEMINI_API_KEY`, `GEMINI_FLASH_KEY_2`), native vision, native `json_object` response format, zero proxy dependency.
-2. `opencode-haiku` (`claude-haiku-5-5` via OpenCode Go Direct) — ~1.47s warm p50, independent cloud provider (`OPENCODEGOTAGRADER`).
-3. `omniroute-haiku` (`no-think/github/claude-haiku-4.5` via OmniRoute LAN `192.168.1.200:20128`) — ~0.82s warm p50, native vision.
-4. `omniroute-terra` (`no-think/github/gpt-5.6-terra` via OmniRoute LAN `192.168.1.200:20128`) — ~1.14s warm p50, native vision, strong math/chemistry accuracy.
-5. `xai-grok-fast` (`grok-4.20-0309-non-reasoning` via xAI Direct) — ~2.31s warm p50, independent cloud provider (`XAI_API_KEY`), native vision.
+## Endpoint priority (Zero-Quota-Burn Flash/Lite Interleaved Chain)
+1. `opencode-mimo-flash` (`mimo-v2.6-flash` via OpenCode Go Direct) — ~1.94s warm p50, native vision, native `json_object` format (`OPENCODEGOTAGRADER`).
+2. `gemini-2.5-flash` (`gemini-2.5-flash` via Google AI Studio Direct) — ~1.25s warm p50, 2 rotation keys (`GEMINI_API_KEY`, `GEMINI_FLASH_KEY_2`), native vision, native `json_object` response format.
+3. `opencode-deepseek-flash` (`deepseek-v4.1-flash` via OpenCode Go with `thinking: disabled`) — ~1.06s warm p50, native vision, negligible allowance burn.
+4. `xai-grok-fast` (`grok-4.20-0309-non-reasoning` via xAI Direct) — ~0.85s warm p50, native vision, emergency safety net.
+5. `opencode-glm-flash` (`glm-5.3-flash` via OpenCode Go) — ~1.20s warm p50, native vision, $0 allowance burn.
+6. `omniroute-haiku` (`no-think/github/claude-haiku-4.5` via OmniRoute LAN `192.168.1.200:20128`) — ~1.00s warm p50, native vision, unmetered Copilot quota.
 
 ## Quota & Cooldown Mechanics
 - **Per-Key Quota Cooldown (`_key_cooldown`):** When a key returns `HTTP 429`, that specific key is cooled for `60s` (`3600s` on `HTTP 401/403`) and the next key is tried immediately with a fresh timeout budget. Subsequent hotkey presses skip the cooling key automatically.

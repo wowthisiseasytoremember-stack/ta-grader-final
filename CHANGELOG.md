@@ -1,5 +1,34 @@
 # Changelog — TA Grader
 
+## 2026-11-06 19:27 UTC — opencode-mimo-flash default primary endpoint
+
+Promoted OpenCode Go's MiMo Flash (`mimo-v2.6-flash`) to the default (Rank 1) endpoint and interleaved fallbacks to eliminate provider lock:
+
+### Changed
+- **Default model to `opencode-mimo-flash`:** Configured `mimo-v2.6-flash` via OpenCode Go (`OPENCODEGOTAGRADER`) as rank 1 with native vision, native `json_object` format support, 2.2s/2.8s timeouts, and ~1.94s warm p50.
+- **Interleaved fallback chain:**
+  1. `opencode-mimo-flash` (`mimo-v2.6-flash` via OpenCode Go, 1.94s, native vision)
+  2. `gemini-2.5-flash` (`gemini-2.5-flash` direct via Google AI Studio, 1.25s, 2 rotating keys, native vision)
+  3. `opencode-deepseek-flash` (`deepseek-v4.1-flash` via OpenCode Go with `thinking: disabled`, 1.06s, native vision)
+  4. `xai-grok-fast` (`grok-4.20-0309-non-reasoning` direct via xAI, 0.85s, native vision)
+  5. `opencode-glm-flash` (`glm-5.3-flash` via OpenCode Go, 1.20s, native vision)
+  6. `omniroute-haiku` (`claude-haiku-4.5` via LAN Copilot, 1.00s, native vision)
+
+## 2026-11-04 00:31 UTC — zero-quota-murder flash/lite waterfall & timeout cascade fix
+
+Log audit revealed a 7.2s timeout cascade caused by adjacent OmniRoute endpoints at ranks 1 & 2 sharing Copilot upstream stalls, while OpenCode `beam-free` was tripping TTFT keepalive guards with hidden reasoning tokens. Replaced with an interleaved, zero-quota-burn sub-1.3s flash waterfall:
+
+### Changed
+- **Interleaved waterfall:** Ranks now alternate across independent backends to eliminate shared-fate latency stalls:
+  1. `omniroute-haiku` (`claude-haiku-4.5` via LAN Copilot, 1.00s, native vision)
+  2. `opencode-deepseek-flash` (`deepseek-v4.1-flash` via OpenCode Go with `thinking: disabled`, 1.06s, native vision)
+  3. `opencode-glm-flash` (`glm-5.3-flash` via OpenCode Go, 1.20s, $0 allowance burn, native vision)
+  4. `gemini-2.5-flash` (`gemini-2.5-flash` direct via Google AI Studio, 1.25s, 2 rotating keys, native vision)
+  5. `xai-grok-fast` (`grok-4.20-0309-non-reasoning` direct via xAI, 0.85s, native vision safety net)
+- **Disabled reasoning on DeepSeek Flash:** Added `payload_overrides: {"thinking": {"type": "disabled"}}` to suppress hidden thinking tokens and deliver pure sub-1.1s direct JSON without burning Go plan allowance.
+- **Extended endpoint cooldown:** Increased `endpoint_cooldown_sec` from 15s to 60s in `config.json` so failing/stalled endpoints stay cooled across multiple questions.
+- **Removed `opencode-beam`:** Eliminated broken reasoning model that was tripping the TTFT streaming stall guard.
+
 ## 2026-11-01 21:38 UTC — tabula rasa audit & architecture reset
 
 Empirical log audit + live 40-endpoint benchmark drove a full simplification of `TA_Grader.py` and `config.json`:

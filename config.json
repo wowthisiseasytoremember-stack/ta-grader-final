@@ -1,9 +1,9 @@
 {
   "fixed_ocr_region": [
-    2,
-    306,
-    1038,
-    1270
+    87,
+    286,
+    998,
+    1293
   ],
   "scroll_region": null,
   "auto_scroll_region": null,
@@ -24,12 +24,94 @@
   "tesseract_psm": 6,
   "ocr_min_confidence": 65.0,
   "ocr_min_option_markers": 3,
+  "enable_math_mode": false,
   "doppler_project": "ichabod",
   "doppler_config": "prd",
   "system_prompt": "You are a master academic answer-key assistant across all college disciplines: Mathematics, Calculus, Statistics, Business, Finance, Accounting, Marketing, Law, History, Economics, Psychology, Natural Sciences, and Literature.\n\nInstructions:\n1. Solve problems step by step mentally. For math and logic, calculate exact numbers and verify arithmetic.\n2. Pay strict attention to negative question stems (e.g. \"Which is NOT...\", \"All of the following EXCEPT...\").\n3. Compare all options against each other to identify the definitively correct choice.\n4. Output ONLY valid JSON in this exact format (start directly with \"{\" and no markdown ticks):\n\n{\"answer\": \"<letter>) <answer text>\"}\n\nWhere <letter> is one of A, B, C, D, E and <answer text> is the complete text of the winning option.",
   "max_tokens": 256,
   "temperature": 0.2,
   "endpoints": [
+    {
+      "name": "opencode-mimo-flash",
+      "url": "https://opencode.ai/zen/go/v1/chat/completions",
+      "model": "mimo-v2.6-flash",
+      "key_env": [
+        "OPENCODEGOTAGRADER"
+      ],
+      "timeout_sec": 2.2,
+      "total_timeout_sec": 2.8,
+      "max_retries": 0,
+      "supports_response_format": true,
+      "supports_vision": true,
+      "enabled": true,
+      "max_tokens": 256
+    },
+    {
+      "name": "gemini-2.5-flash",
+      "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+      "model": "gemini-2.5-flash",
+      "key_env": [
+        "GEMINI_API_KEY",
+        "GEMINI_FLASH_KEY_2"
+      ],
+      "timeout_sec": 2.2,
+      "total_timeout_sec": 2.8,
+      "max_retries": 0,
+      "supports_response_format": true,
+      "supports_vision": true,
+      "enabled": true,
+      "max_tokens": 256
+    },
+    {
+      "name": "opencode-deepseek-flash",
+      "url": "https://opencode.ai/zen/go/v1/chat/completions",
+      "model": "deepseek-v4.1-flash",
+      "key_env": [
+        "OPENCODEGOTAGRADER"
+      ],
+      "timeout_sec": 2.0,
+      "total_timeout_sec": 2.6,
+      "max_retries": 0,
+      "supports_response_format": false,
+      "supports_vision": true,
+      "enabled": true,
+      "max_tokens": 256,
+      "payload_overrides": {
+        "thinking": {
+          "type": "disabled"
+        }
+      }
+    },
+    {
+      "name": "xai-grok-fast",
+      "url": "https://api.x.ai/v1/chat/completions",
+      "model": "grok-4.20-0309-non-reasoning",
+      "key_env": [
+        "XAI_API_KEY"
+      ],
+      "timeout_sec": 2.2,
+      "total_timeout_sec": 2.8,
+      "max_retries": 0,
+      "supports_response_format": true,
+      "supports_vision": true,
+      "enabled": true,
+      "max_tokens": 256
+    },
+    {
+      "name": "opencode-glm-flash",
+      "url": "https://opencode.ai/zen/go/v1/chat/completions",
+      "model": "glm-5.3-flash",
+      "key_env": [
+        "OPENCODEGOTAGRADER"
+      ],
+      "timeout_sec": 2.0,
+      "total_timeout_sec": 2.6,
+      "max_retries": 0,
+      "supports_response_format": false,
+      "supports_vision": true,
+      "enabled": true,
+      "max_tokens": 256
+    },
     {
       "name": "omniroute-haiku",
       "url": "http://192.168.1.200:20128/v1/chat/completions",
@@ -45,69 +127,8 @@
       "supports_vision": true,
       "enabled": true,
       "max_tokens": 256
-    },
-    {
-      "name": "omniroute-terra",
-      "url": "http://192.168.1.200:20128/v1/chat/completions",
-      "url_env": "OMNIROUTE_CHAT_URL",
-      "model": "no-think/github/gpt-5.6-terra",
-      "key_env": [
-        "OMNIROUTE_API_KEY"
-      ],
-      "timeout_sec": 2.2,
-      "total_timeout_sec": 2.7,
-      "max_retries": 0,
-      "supports_response_format": false,
-      "supports_vision": true,
-      "enabled": true,
-      "max_tokens": 256
-    },
-    {
-      "name": "xai-grok-fast",
-      "url": "https://api.x.ai/v1/chat/completions",
-      "model": "grok-4.20-0309-non-reasoning",
-      "key_env": [
-        "XAI_API_KEY"
-      ],
-      "timeout_sec": 2.5,
-      "total_timeout_sec": 3.0,
-      "max_retries": 0,
-      "supports_response_format": true,
-      "supports_vision": true,
-      "enabled": true,
-      "max_tokens": 256
-    },
-    {
-      "name": "opencode-beam",
-      "url": "https://opencode.ai/zen/go/v1/chat/completions",
-      "model": "beam-free",
-      "key_env": [
-        "OPENCODEGOTAGRADER"
-      ],
-      "timeout_sec": 2.2,
-      "total_timeout_sec": 2.8,
-      "max_retries": 0,
-      "supports_response_format": false,
-      "supports_vision": false,
-      "enabled": true,
-      "max_tokens": 256
-    },
-    {
-      "name": "opencode-haiku",
-      "url": "https://opencode.ai/zen/go/v1/chat/completions",
-      "model": "claude-haiku-5-5",
-      "key_env": [
-        "OPENCODEGOTAGRADER"
-      ],
-      "timeout_sec": 3.0,
-      "total_timeout_sec": 3.5,
-      "max_retries": 0,
-      "supports_response_format": false,
-      "supports_vision": false,
-      "enabled": true,
-      "max_tokens": 256
     }
   ],
-  "endpoint_cooldown_sec": 15,
+  "endpoint_cooldown_sec": 60,
   "vision_enabled": true
 }
