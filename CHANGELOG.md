@@ -9,6 +9,7 @@ User directive: haiku-5.5 first, attempted via OpenCode Go then via OpenRouter.
 - **New rank 2 `openrouter-haiku5.5`:** `anthropic/claude-haiku-5.5` via OpenRouter (user's own key `OPENROUTERTAGRADER`), HTTP 200 on probe. Same timeouts (2.6s TTFT / 3.2s wall).
 - **Go catalog note:** 30 models behind `OPENCODEGOTAGRADER` incl. `claude-haiku-5-5`, `gemini-4-argon`, `grok-4.7`, `kimi-k3`, `qwen3.8`, `minimax-m3.1-flash` — spare options for later experiments, not wired now.
 - `omniroute-haiku` (free Copilot 4.5) drops to rank 3 — free insurance under the 5.5 pair; OmniRoute github/claude-haiku-5.5 still 502 (token refresh pending).
+- **Vision budget bump (v5.2 hotfix, same hour):** the 02:17:32 vision-first question failed on every rank — old 2.2–2.6s TTFT budgets don't fit image-payload latency (text-only probes had masked this). Vision ranks widened: Go/OpenRouter haiku 3.2/4.0, omniroute-haiku 2.8/3.6, grok 2.8/3.4, Go flashes 3.0/3.8 etc. Re-verified from the app's own vantage after bump: Go haiku vision stream 200 @ ~1.08s; OpenRouter haiku vision stream 200 @ ~1.34s. Text-only ranks (gemma pair, opencode-free) keep tight budgets. Separate: `gemini-2.5-flash` now 404s (URL/model drift on Google's openai-compat path) — last rank, cosmetic until probed.
 - Contract suite 18 tests; all four suites green locally.
 
 ## 2026-11-09 08:20 UTC — v5.1: keys vaulted + openrouter-direct rank wired

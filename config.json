@@ -38,8 +38,8 @@
       "key_env": [
         "OPENCODEGOTAGRADER"
       ],
-      "timeout_sec": 2.6,
-      "total_timeout_sec": 3.2,
+      "timeout_sec": 3.2,
+      "total_timeout_sec": 4.0,
       "max_retries": 0,
       "supports_response_format": false,
       "supports_vision": true,
@@ -53,8 +53,8 @@
       "key_env": [
         "OPENROUTERTAGRADER"
       ],
-      "timeout_sec": 2.6,
-      "total_timeout_sec": 3.2,
+      "timeout_sec": 3.2,
+      "total_timeout_sec": 4.0,
       "max_retries": 0,
       "supports_response_format": false,
       "supports_vision": true,
@@ -69,7 +69,7 @@
         "OMNIROUTE_API_KEY"
       ],
       "timeout_sec": 2.8,
-      "total_timeout_sec": 3.4,
+      "total_timeout_sec": 3.6,
       "max_retries": 0,
       "supports_response_format": false,
       "supports_vision": true,
@@ -83,8 +83,8 @@
       "key_env": [
         "XAI_API_KEY"
       ],
-      "timeout_sec": 2.2,
-      "total_timeout_sec": 2.8,
+      "timeout_sec": 2.8,
+      "total_timeout_sec": 3.4,
       "max_retries": 0,
       "supports_response_format": true,
       "supports_vision": true,
@@ -128,8 +128,8 @@
       "key_env": [
         "OPENCODEGOTAGRADER"
       ],
-      "timeout_sec": 2.2,
-      "total_timeout_sec": 2.8,
+      "timeout_sec": 3.0,
+      "total_timeout_sec": 3.8,
       "max_retries": 0,
       "supports_response_format": true,
       "supports_vision": true,
@@ -143,8 +143,8 @@
       "key_env": [
         "OPENCODEGOTAGRADER"
       ],
-      "timeout_sec": 2.0,
-      "total_timeout_sec": 2.6,
+      "timeout_sec": 2.6,
+      "total_timeout_sec": 3.4,
       "max_retries": 0,
       "supports_response_format": false,
       "supports_vision": true,
@@ -163,8 +163,8 @@
       "key_env": [
         "OPENCODEGOTAGRADER"
       ],
-      "timeout_sec": 2.0,
-      "total_timeout_sec": 2.6,
+      "timeout_sec": 2.6,
+      "total_timeout_sec": 3.4,
       "max_retries": 0,
       "supports_response_format": false,
       "supports_vision": true,
