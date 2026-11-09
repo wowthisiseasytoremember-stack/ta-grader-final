@@ -32,8 +32,53 @@
   "temperature": 0.2,
   "endpoints": [
     {
+      "name": "omniroute-haiku",
+      "url": "http://100.122.158.123:20128/v1/chat/completions",
+      "model": "no-think/github/claude-haiku-4.5",
+      "key_env": [
+        "OMNIROUTE_API_KEY"
+      ],
+      "timeout_sec": 2.8,
+      "total_timeout_sec": 3.4,
+      "max_retries": 0,
+      "supports_response_format": false,
+      "supports_vision": true,
+      "enabled": true,
+      "max_tokens": 256
+    },
+    {
+      "name": "xai-grok-fast",
+      "url": "https://api.x.ai/v1/chat/completions",
+      "model": "grok-4.20-0309-non-reasoning",
+      "key_env": [
+        "XAI_API_KEY"
+      ],
+      "timeout_sec": 2.2,
+      "total_timeout_sec": 2.8,
+      "max_retries": 0,
+      "supports_response_format": true,
+      "supports_vision": true,
+      "enabled": true,
+      "max_tokens": 256
+    },
+    {
+      "name": "omniroute-gemma-free",
+      "url": "http://100.122.158.123:20128/v1/chat/completions",
+      "model": "openrouter/google/gemma-4-26b-a4b-it:free",
+      "key_env": [
+        "OMNIROUTE_API_KEY"
+      ],
+      "timeout_sec": 2.2,
+      "total_timeout_sec": 2.8,
+      "max_retries": 0,
+      "supports_response_format": false,
+      "supports_vision": false,
+      "enabled": true,
+      "max_tokens": 256
+    },
+    {
       "name": "opencode-mimo-flash",
-      "url": "https://opencode.ai/zen/go/v1/chat/completions",
+      "url": "https://opencode.ai/inference/go/openai/v1/chat/completions",
       "model": "mimo-v2.6-flash",
       "key_env": [
         "OPENCODEGOTAGRADER"
@@ -47,24 +92,8 @@
       "max_tokens": 256
     },
     {
-      "name": "gemini-2.5-flash",
-      "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-      "model": "gemini-2.5-flash",
-      "key_env": [
-        "GEMINI_API_KEY",
-        "GEMINI_FLASH_KEY_2"
-      ],
-      "timeout_sec": 2.2,
-      "total_timeout_sec": 2.8,
-      "max_retries": 0,
-      "supports_response_format": true,
-      "supports_vision": true,
-      "enabled": true,
-      "max_tokens": 256
-    },
-    {
       "name": "opencode-deepseek-flash",
-      "url": "https://opencode.ai/zen/go/v1/chat/completions",
+      "url": "https://opencode.ai/inference/go/openai/v1/chat/completions",
       "model": "deepseek-v4.1-flash",
       "key_env": [
         "OPENCODEGOTAGRADER"
@@ -83,23 +112,8 @@
       }
     },
     {
-      "name": "xai-grok-fast",
-      "url": "https://api.x.ai/v1/chat/completions",
-      "model": "grok-4.20-0309-non-reasoning",
-      "key_env": [
-        "XAI_API_KEY"
-      ],
-      "timeout_sec": 2.2,
-      "total_timeout_sec": 2.8,
-      "max_retries": 0,
-      "supports_response_format": true,
-      "supports_vision": true,
-      "enabled": true,
-      "max_tokens": 256
-    },
-    {
       "name": "opencode-glm-flash",
-      "url": "https://opencode.ai/zen/go/v1/chat/completions",
+      "url": "https://opencode.ai/inference/go/openai/v1/chat/completions",
       "model": "glm-5.3-flash",
       "key_env": [
         "OPENCODEGOTAGRADER"
@@ -113,22 +127,41 @@
       "max_tokens": 256
     },
     {
-      "name": "omniroute-haiku",
-      "url": "http://192.168.1.200:20128/v1/chat/completions",
-      "url_env": "OMNIROUTE_CHAT_URL",
-      "model": "no-think/github/claude-haiku-4.5",
-      "key_env": [
-        "OMNIROUTE_API_KEY"
-      ],
-      "timeout_sec": 2.0,
-      "total_timeout_sec": 2.5,
+      "name": "opencode-free",
+      "url": "https://opencode.ai/zen/v1/chat/completions",
+      "model": "deepseek-v4.1-flash-free",
+      "key_env": [],
+      "no_auth": true,
+      "headers": {
+        "User-Agent": "opencode/2.2.5",
+        "x-opencode-client": "opencode"
+      },
+      "timeout_sec": 2.2,
+      "total_timeout_sec": 2.8,
       "max_retries": 0,
       "supports_response_format": false,
+      "supports_vision": false,
+      "enabled": true,
+      "max_tokens": 256
+    },
+    {
+      "name": "gemini-2.5-flash",
+      "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+      "model": "gemini-2.5-flash",
+      "key_env": [
+        "GEMINI_API_KEY",
+        "GEMINI_FLASH_KEY_2"
+      ],
+      "timeout_sec": 3.2,
+      "total_timeout_sec": 3.8,
+      "max_retries": 0,
+      "supports_response_format": true,
       "supports_vision": true,
       "enabled": true,
       "max_tokens": 256
     }
   ],
-  "endpoint_cooldown_sec": 60,
+  "endpoint_cooldown_sec": 15,
+  "auth_fail_cooldown_sec": 1800,
   "vision_enabled": true
 }

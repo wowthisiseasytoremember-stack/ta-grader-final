@@ -1,9 +1,14 @@
 # TA Grader — TODO
 
 ## Active Execution Tasks
-- [ ] Watch `%LOCALAPPDATA%\Temp\ta_grader.log` for the first day of routing v3 — confirm gpt5.4-mini's re-enable holds (844 historical wins) and provider-scoped cooldowns behave during the next OmniRoute quota storm.
-- [x] Archive retired checkouts `ta-grader`, `ta-grader-app`, `ta-grader-new` to `~/Projects/_archived/` on ichabod (2026-10-30; registry now lists only `ta-grader-final`).
-- [ ] Consider a `config.json` health probe script that pings each enabled endpoint's origin at startup and logs which providers are reachable before the first question.
+- [ ] **Restart the app** to load the v5 chain (haiku rank 1, gemma-free rank 3, Go trio demoted, 403-parking active). Config only re-reads on boot.
+- [ ] **Fresh OpenCode Go key** (ranks 4–6 dormant until then): create one in OpenCode Console → Account → API keys (browser login; can't mint from CLI) and put it in Doppler `OPENCODEGOTAGRADER` + `Desktop\TA-Grader\.env`. Ranks self-revive next question after the key lands — no restart needed.
+- [ ] **OmniRoute Copilot token refresh:** `no-think/github/claude-haiku-5.5` and `sonnet-5.5` 502 "empty upstream" (stale OAuth suspected). Refresh in OmniRoute settings (`:20128` on ichabod). Until then haiku-4.5 covers the route.
+- [ ] Watch `ta_grader.log` for the first session on the v5 chain: confirm haiku answers rank-first in ~1.5s, 403-parked Go ranks stay dormant, and no 200-with-empty-content traps (gemini-3.8-flash class) get trusted.
+- [ ] `ta_grader.log` (254KB) will rotate eventually — wire a size-cap or date rotation before it bloats the desktop overlay box.
 
 ## Done
-- [x] Routing v3: provider-interleaved 10-rank chain, exponential provider-scoped cooldowns, keyless skip, stalest-retry, vision consensus + escalation, per-endpoint token budgets (commit `7416748`, 36/36 tests green).
+- [x] Routing v5 (2026-11-09): 8-rank chain re-ordered by probe evidence — `omniroute-haiku` rank 1 (user call: fast+smart), grok rank 2 (proven 64/71), `omniroute-gemma-free` rank 3 ($0, 200 @ ~1.1s), Go trio demoted to 4–6 pending new key, anonymous `opencode-free` overflow, gemini last (0/30 record). Probe matrix logged in CHANGELOG: agy accounts deprecated-content, aug 502, oc free 429 / paid 402, kimi-k3 400, gemini-3.8-flash empty-content trap, mai-code-1.1-flash viable spare.
+- [x] Behavior fixes (2026-11-08/09): auth-fail endpoint parking (1800s), key-aware stalest retry, stable per-run `ses_<64-hex>` OpenCode session + client headers, `remap_answer_letter()` display guard wired into `_run_llm` (live-verified 3 cases: mismatch→remap, consistent→unchanged, no-options→conservative).
+- [x] OmniRoute container `omniroute-ichabod` restarted after it sat Exited(7) for two days (2026-11-08; port 20128 listening again; old LAN rank answered a real question at 16:31:30).
+- [x] Archive retired checkouts `ta-grader`, `ta-grader-app`, `ta-grader-new` to `~/Projects/_archived/` on ichabod (2026-10-30; registry now lists only `ta-grader-final`).

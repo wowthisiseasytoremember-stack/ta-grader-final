@@ -21,7 +21,7 @@ Dependencies:
 from __future__ import annotations
 
 import json
-import uuid
+import difflib
 import os
 import re
 import sys
@@ -337,8 +337,15 @@ def get_api_key(cfg: dict[str, Any], key_name: str) -> Optional[str]:
     return value
 
 
+NO_AUTH_KEY = "__no_auth__"
+
+
 def endpoint_api_keys(cfg: dict[str, Any], ep: dict[str, Any]) -> list[str]:
     """Return all configured, available, de-duplicated keys for an endpoint."""
+    if ep.get("no_auth"):
+        # Bearer-less endpoints (e.g. OpenCode free overflow) get a sentinel so
+        # eligibility, cooldown bookkeeping, and key-rotation logic all stay uniform.
+        return [NO_AUTH_KEY]
     key_envs = ep.get("key_env") or []
     if isinstance(key_envs, str):
         key_envs = [key_envs]
@@ -497,6 +504,89 @@ def extract_answer(text: str) -> Optional[str]:
         return f"{last_m.group(1).upper()}) {ans}"
 
     return None
+
+
+def _normalize_option_text(s: str) -> str:
+    """Aggressive normalization for option text comparison (lowercase, alnum only)."""
+    if not s:
+        return ""
+    t = s.lower()
+    t = re.sub(r"^(?:the\s+|a\s+|an\s+)", "", t)
+    t = re.sub(r"[^a-z0-9]+", " ", t)
+    return re.sub(r"\s+", " ", t).strip()
+
+
+def _parse_options(question_text: str) -> dict[str, str]:
+    """Extract a letter -> option-text map from OCR'd/clipboard question text."""
+    opts: dict[str, str] = {}
+    if not question_text:
+        return opts
+    pat = re.compile(r"^([A-Ea-e])\)?[\.\)):]\s+(.+)$")
+    for line in question_text.splitlines():
+        line = line.strip()
+        m = pat.match(line)
+        if not m:
+            continue
+        letter = m.group(1).upper()
+        body = m.group(2).strip()
+        if letter not in opts and len(body) >= 2:
+            opts[letter] = body
+    return opts
+
+
+def remap_answer_letter(answer: str, question_text: str) -> str:
+    """Repair letter <-> text mismatches before the answer is displayed.
+
+    OCR debris (stray radio-button markers like 'c.' riding on the wrong line,
+    duplicated letters, shuffled option order) can push a model to return the
+    right text under the wrong letter. The overlay then points at an option that
+    does not exist on screen. This guard verifies the letter against the option
+    text; when they disagree but the text uniquely matches another option, the
+    displayed letter is corrected to that option's letter.
+    """
+    if not answer or not question_text:
+        return answer
+    m = re.match(r"^([A-Ea-e])\)?\s+[\.):\]]*\s*(.+)$", answer.strip(), re.DOTALL)
+    if not m:
+        return answer
+    letter = m.group(1).upper()
+    body = re.sub(r"\s+", " ", m.group(2)).strip(" .\"'")
+    if not body:
+        return answer
+
+    opts = _parse_options(question_text)
+    if not opts:
+        return answer
+
+    target_norm = _normalize_option_text(body)
+    stated_norm = _normalize_option_text(opts.get(letter, ""))
+
+    def _similarity(a: str, b: str) -> float:
+        if not a or not b:
+            return 0.0
+        if a == b:
+            return 1.0
+        return difflib.SequenceMatcher(None, a, b).ratio()
+
+    # Consistent (letter's own text matches the returned text) -> leave as-is.
+    if stated_norm and _similarity(target_norm, stated_norm) >= 0.75:
+        return answer
+
+    # Otherwise: find which on-screen option the returned text actually matches.
+    best_letter: Optional[str] = None
+    best_score = 0.0
+    for cand_letter, cand_text in opts.items():
+        cand_norm = _normalize_option_text(cand_text)
+        score = _similarity(target_norm, cand_norm)
+        if score > best_score:
+            best_score = score
+            best_letter = cand_letter
+
+    if best_letter and best_score >= 0.75 and best_letter != letter:
+        fixed = f"{best_letter}) {opts[best_letter]}"
+        log(f"Answer remap: '{answer.strip()[:60]}' -> '{fixed[:60]}' (letter/text mismatch)")
+        return fixed
+    return answer
 
 
 def clean_question_text(text: str) -> str:
@@ -780,6 +870,7 @@ class LLMClient:
             self.session.trust_env = False  # Bypass Windows WPAD proxy discovery stalls
         self._cooldown: dict[str, float] = {}
         self._key_cooldown: dict[str, float] = {}
+        self._oc_session: Optional[str] = None
 
     def stream(
         self,
@@ -827,8 +918,21 @@ class LLMClient:
             or self._cooldown.get(ep.get("name", ep.get("url", "?")), 0.0) <= now
         ]
         if eligible and not live:
+            # Prefer endpoints whose keys are actually live; only fall back to
+            # key-cooling endpoints when every rank is auth-limited. Ranking by
+            # endpoint cooldown alone deterministically re-picks dead keys.
+            now_stale = time.monotonic()
+
+            def _key_state(epd: dict[str, Any]) -> float:
+                ks = endpoint_api_keys(cfg, epd)
+                if not ks:
+                    return 0.0
+                return min((self._key_cooldown.get(k, 0.0) for k in ks), default=0.0)
+
+            usable = [d for d in eligible if _key_state(d) <= now_stale]
+            pool = usable or eligible
             warmest = min(
-                eligible,
+                pool,
                 key=lambda e: self._cooldown.get(e.get("name", e.get("url", "?")), 0.0),
             )
             wname = warmest.get("name", warmest.get("url", "?"))
@@ -863,8 +967,14 @@ class LLMClient:
                 log(f"LLM: '{name}' failed: {type(e).__name__}: {e}")
                 detail = str(e)
                 base_cd = float(cfg.get("endpoint_cooldown_sec", 15))
-                if "HTTP 429" in detail or "HTTP 401" in detail or "HTTP 403" in detail:
+                if "HTTP 429" in detail:
+                    # Quota-shaped: rotating keys usually fixes it quickly.
                     base_cd = max(base_cd, 60.0)
+                elif "HTTP 401" in detail or "HTTP 403" in detail:
+                    # Auth-shaped: the credential is dead rather than merely tired.
+                    # Retrying a dead key every question just burns seconds, so park
+                    # the whole endpoint until a long cooldown (or app restart) passes.
+                    base_cd = max(base_cd, float(cfg.get("auth_fail_cooldown_sec", 1800.0)))
                 self._cooldown[name] = time.monotonic() + base_cd
                 last_err = e
 
@@ -1001,7 +1111,13 @@ class LLMClient:
             base_headers["HTTP-Referer"] = "https://github.com/justinryan/ta-grader"
             base_headers["X-Title"] = "TA Grader"
         if "opencode.ai" in url.lower():
-            base_headers["x-opencode-session"] = str(uuid.uuid4())
+            # OpenCode's routing contract (2026-11): a stable session id per
+            # conversation plus a client discriminator, not just a bearer key.
+            # Keep one ses_<64 hex> for the whole process so prompt caching applies.
+            if not self._oc_session:
+                self._oc_session = "ses_" + os.urandom(32).hex()
+            base_headers["x-opencode-session"] = self._oc_session
+            base_headers["x-opencode-client"] = "opencode"
         if ep.get("headers"):
             base_headers.update(ep["headers"])
 
@@ -1015,7 +1131,9 @@ class LLMClient:
             key_start = time.monotonic()
             deadline = key_start + total_timeout_sec
             ttft_deadline = key_start + ep_read
-            headers = {**base_headers, "Authorization": f"Bearer {api_key}"}
+            headers = {**base_headers}
+            if api_key != NO_AUTH_KEY:
+                headers["Authorization"] = f"Bearer {api_key}"
 
             for _attempt in range(max_retries + 1):
                 remaining = deadline - time.monotonic()
@@ -2007,6 +2125,12 @@ class App:
             if not final_answer:
                 log(f"extract_answer failed. endpoint={endpoint_used!r} raw={final_raw!r}")
                 final_answer = "⚠ No answer found.\n\nTry selecting a larger region or re-copying the text."
+
+            # Guard against OCR-debris letter/text mismatches before display.
+            try:
+                final_answer = remap_answer_letter(final_answer, text)
+            except Exception as remap_err:
+                log(f"Answer remap skipped: {remap_err}")
 
             display = final_answer
             ep_label = endpoint_used

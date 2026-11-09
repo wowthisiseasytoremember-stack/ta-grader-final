@@ -30,6 +30,7 @@ assert class_node is not None, "LLMClient not found in TA_Grader.py"
 namespace = {
     "endpoint_api_keys": lambda cfg, ep: ["test"],
     "endpoint_supports_vision": lambda ep: ep.get("supports_vision", False),
+    "NO_AUTH_KEY": "__no_auth__",
     "requests": requests,
     "json": json,
     "time": time,

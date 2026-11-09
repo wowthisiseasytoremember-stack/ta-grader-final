@@ -19,11 +19,14 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(
             [ep["name"] for ep in CONFIG["endpoints"]],
             [
-                "gemini-flash-lite",
-                "opencode-haiku",
                 "omniroute-haiku",
-                "omniroute-terra",
                 "xai-grok-fast",
+                "omniroute-gemma-free",
+                "opencode-mimo-flash",
+                "opencode-deepseek-flash",
+                "opencode-glm-flash",
+                "opencode-free",
+                "gemini-2.5-flash",
             ],
         )
 
@@ -35,8 +38,54 @@ class ContractTests(unittest.TestCase):
                 f"{ep['name']} must explicitly set supports_vision",
             )
 
+    def test_opencode_go_endpoints_use_current_inference_base(self):
+        for ep in CONFIG["endpoints"]:
+            if ep["name"].startswith("opencode-") and ep.get("model", "").endswith(
+                ("flash", "-flash")
+            ) and "-free" not in ep["model"] and ep["name"] != "opencode-free":
+                self.assertTrue(
+                    ep["url"].startswith("https://opencode.ai/inference/go/"),
+                    f"{ep['name']} must use the inference/go base URL",
+                )
+
+    def test_omniroute_ranks_reach_over_tailscale(self):
+        omni = [ep for ep in CONFIG["endpoints"] if ep["name"].startswith("omniroute-")]
+        self.assertGreaterEqual(len(omni), 2, "expect haiku + free OmniRoute ranks")
+        for ep in omni:
+            self.assertIn("100.122.158.123:20128", ep["url"])
+        haiku = next(ep for ep in omni if ep["name"] == "omniroute-haiku")
+        self.assertEqual(haiku["model"], "no-think/github/claude-haiku-4.5")
+        gemma = next(ep for ep in omni if ep["name"] == "omniroute-gemma-free")
+        self.assertTrue(gemma["model"].endswith(":free"))
+        self.assertFalse(gemma.get("supports_vision", True))
+
+    def test_free_overflow_rank_wire(self):
+        free = next(ep for ep in CONFIG["endpoints"] if ep["name"] == "opencode-free")
+        self.assertTrue(free.get("no_auth"))
+        self.assertIn("opencode.ai/zen/v1", free["url"])
+        self.assertIn("-free", free["model"])
+        self.assertFalse(free.get("supports_vision", True))
+        self.assertEqual(free["headers"].get("x-opencode-client"), "opencode")
+
+    def test_auth_fail_cooldown_configured(self):
+        self.assertGreaterEqual(int(CONFIG["auth_fail_cooldown_sec"]), 900)
+        self.assertIn("auth_fail_cooldown_sec", SOURCE)
+        self.assertIn("auth_fail_cooldown_sec", json.dumps(
+            json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+        ))
+
+    def test_answer_letter_remap_guard_present(self):
+        self.assertIn("def remap_answer_letter", SOURCE)
+        self.assertIn("remap_answer_letter(", SOURCE)
+        self.assertIn("def _parse_options", SOURCE)
+        self.assertIn("def _normalize_option_text", SOURCE)
+
+    def test_stable_opencode_session_header(self):
+        self.assertIn("ses_\" + os.urandom(32).hex()", SOURCE)
+        self.assertIn("x-opencode-client", SOURCE)
+
     def test_gemini_has_two_rotation_keys(self):
-        gemini = next(ep for ep in CONFIG["endpoints"] if ep["name"] == "gemini-flash-lite")
+        gemini = next(ep for ep in CONFIG["endpoints"] if ep["name"] == "gemini-2.5-flash")
         self.assertEqual(
             gemini["key_env"],
             ["GEMINI_API_KEY", "GEMINI_FLASH_KEY_2"],

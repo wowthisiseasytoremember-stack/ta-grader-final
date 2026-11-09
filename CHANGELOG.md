@@ -1,5 +1,36 @@
 # Changelog — TA Grader
 
+## 2026-11-09 00:43 UTC — cascade v5: haiku-first, verified-cheap ranks, Go demoted
+
+Log audit showed the chain degraded to a single live endpoint (xai-grok 64/71) while mimo/deepseek/glm 403'd every call, gemini went 0/30, and the OmniRoute container sat dead for two days. The OmniRoute container was restarted on ichabod, and a full-model census (1972 models) + live probe matrix picked the final chain.
+
+### Final 8-rank chain (all but Go ranks live-verified this session)
+1. `omniroute-haiku` — `no-think/github/claude-haiku-4.5` via OmniRoute Tailscale `100.122.158.123:20128`; **fast and smart (~1.4s warm), near-zero Copilot premium burn** (user-directed rank 1). NOTE: an earlier audit note claiming the github router "retired" haiku-4.5 is WRONG — live probes (3×) returned 200 with correct answers, and it served a real answer through the old rank at 16:31:30.
+2. `xai-grok-fast` — xAI direct, ~0.85s, proven workhorse (64/71 in the current log).
+3. `omniroute-gemma-free` — `openrouter/google/gemma-4-26b-a4b-it:free` via OmniRoute; 200 @ ~1.1s, $0, answered the probe correctly; text-only (`supports_vision:false`).
+4–6. `opencode-mimo-flash` / `opencode-deepseek-flash` / `opencode-glm-flash` — OpenCode Go `inference/go` base with stable per-run `ses_<64-hex>` `x-opencode-session` + `x-opencode-client` headers. Dormant until a fresh Console key lands (all stored keys expired server-side); they self-revive on the next question after the key lands — no restart needed.
+7. `opencode-free` — anonymous bearer-less overflow (`zen/v1`, `no_auth:true`, UA `opencode/2.2.5`); per-IP capped (429 `FreeUsageLimitError` when the free pool is dry); <1s when free quota is live.
+8. `gemini-2.5-flash` — demoted last (0/30 across the entire current log: high-demand 503s + timeouts); 3.2s/3.8s budgets, 2 rotation keys.
+
+### Probe matrix findings (2026-11-08, OmniRoute — do not re-trust these blindly)
+- **agy/antigravity ranks are dead as endpoints**: `antigravity/gemini-3.1-flash-lite` and `gpt-oss-120b-medium` return 200 whose *content* is a deprecation notice ("This version of Antigravity is no longer…"). Both 2 agy accounts effectively unusable for grading.
+- `aug/haiku4.5`, `aug/gpt5.4-mini` → 502 server_error.
+- `oc/*` (opencode router): free models 429 rate-limit (~4.5s to answer-rate-limit — expensive), paid models (`gpt-5.4-mini`, `qwen3.8-flash`, `minimax-m3`) 402 billing_error.
+- `github/kimi-k3` → 400 invalid_request; `github/gemini-3.8-flash` → HTTP 200 with EMPTY content (trap; would have parked uselessly).
+- `github/mai-code-1.1-flash` → 200 @ ~2.5s, answered correctly — viable but slower spare if gemma-free ever dies.
+- `no-think/github/claude-haiku-5.5` still 502 empty-upstream (4.5–11.5s to fail — stale Copilot OAuth suspected; refresh pending).
+
+### Behavior fixes in this release
+- **HTTP 401/403 now parks the whole endpoint** for `auth_fail_cooldown_sec` (1800s, config-driven) instead of cycling every 60s; 429s keep 60s key rotation.
+- **Stalest-retry is key-aware:** when everything is cooling, endpoints whose keys are live are preferred over endpoints parked with dead credentials.
+- **`remap_answer_letter()` guard:** verifies the returned letter against the OCR'd option text and re-maps when the model puts the right text under the wrong letter (Q8-class mismatch). Conservative: unmatched shapes pass through unchanged.
+- `tests/config.template.json` mirrors the live 8-rank chain; contract suite (16 tests) + routing/regressions/hotkeys all green locally and on ichabod.
+
+### Known pending
+- **OpenCode Go credentials expired server-side** (`api_key_expired`; fleet-wide incl. every key in Doppler `ichabod/prd`). Create a fresh key in OpenCode Console → Account → API keys (browser login; can't be minted from CLI) → Doppler `OPENCODEGOTAGRADER` + `Desktop\TA-Grader\.env`.
+- **OmniRoute Copilot token refresh** for haiku-5.5/sonnet-5.5 (502 empty upstream).
+- Restart the app to load the new chain.
+
 ## 2026-11-06 19:27 UTC — opencode-mimo-flash default primary endpoint
 
 Promoted OpenCode Go's MiMo Flash (`mimo-v2.6-flash`) to the default (Rank 1) endpoint and interleaved fallbacks to eliminate provider lock:

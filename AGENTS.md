@@ -5,8 +5,9 @@ initiative: career
 family: education-tooling
 what: >-
   Floating Windows answer-key overlay: captures a fixed region, manual scroll region,
-  auto-scroll region, or clipboard, then answers through a 5-rank sub-2-second
-  multi-provider LLM chain with per-key quota cooldown memory.
+  auto-scroll region, or clipboard, then answers through an 8-rank sub-2-second
+  multi-provider LLM chain with per-key quota cooldown memory and an answer-letter
+  remap guard.
 goal: >-
   Answer every multiple-choice question in ~1 second using verified direct cloud and
   LAN endpoints with zero fragile middlemen, instant per-key quota rotation, and
@@ -17,7 +18,7 @@ entrypoints:
   - TA_Grader.py
   - config.json
   - Run_TA_Grader.bat
-updated: '2026-11-06 19:27 UTC'
+updated: '2026-11-09 00:43 UTC'
 ---
 
 # AGENTS.md — TA Grader
@@ -34,18 +35,29 @@ All screen capture modes use the same adaptive policy:
 4. Strong OCR (`>= 65.0` confidence and `>= 3` option markers) sends clean text to the primary chain.
 5. Weak OCR promotes vision-capable endpoints first and omits the suspect OCR transcript so it cannot bias the visual read.
 
-## Endpoint priority (Zero-Quota-Burn Flash/Lite Interleaved Chain)
-1. `opencode-mimo-flash` (`mimo-v2.6-flash` via OpenCode Go Direct) — ~1.94s warm p50, native vision, native `json_object` format (`OPENCODEGOTAGRADER`).
-2. `gemini-2.5-flash` (`gemini-2.5-flash` via Google AI Studio Direct) — ~1.25s warm p50, 2 rotation keys (`GEMINI_API_KEY`, `GEMINI_FLASH_KEY_2`), native vision, native `json_object` response format.
-3. `opencode-deepseek-flash` (`deepseek-v4.1-flash` via OpenCode Go with `thinking: disabled`) — ~1.06s warm p50, native vision, negligible allowance burn.
-4. `xai-grok-fast` (`grok-4.20-0309-non-reasoning` via xAI Direct) — ~0.85s warm p50, native vision, emergency safety net.
-5. `opencode-glm-flash` (`glm-5.3-flash` via OpenCode Go) — ~1.20s warm p50, native vision, $0 allowance burn.
-6. `omniroute-haiku` (`no-think/github/claude-haiku-4.5` via OmniRoute LAN `192.168.1.200:20128`) — ~1.00s warm p50, native vision, unmetered Copilot quota.
+## Endpoint priority (Verified 8-Rank Chain, 2026-11-09)
+1. `omniroute-haiku` (`no-think/github/claude-haiku-4.5` via OmniRoute Tailscale `100.122.158.123:20128`) — **rank 1 by user call: fast (~1.4s warm) + smart, near-zero Copilot burn**. Earlier "github router retired haiku-4.5" note was wrong — verified 200 three times 2026-11-09.
+2. `xai-grok-fast` (`grok-4.20-0309-non-reasoning` via xAI Direct) — ~0.85s warm p50, proven workhorse (64/71 in the 2026-11-08 session).
+3. `omniroute-gemma-free` (`openrouter/google/gemma-4-26b-a4b-it:free` via OmniRoute) — ~1.1s warm, $0, correct answer on probe; text-only.
+4. `opencode-mimo-flash` (`mimo-v2.6-flash` via OpenCode Go `inference/go`) — ~1.94s warm p50, native vision, native `json_object`. **Dormant until a fresh Console key lands — every Go key in Doppler+env expired server-side 2026-11.**
+5. `opencode-deepseek-flash` (`deepseek-v4.1-flash` via OpenCode Go, `thinking: disabled`) — ~1.06s warm p50.
+6. `opencode-glm-flash` (`glm-5.3-flash` via OpenCode Go) — ~1.20s warm p50.
+7. `opencode-free` (overflow; `deepseek-v4.1-flash-free` via `opencode.ai/zen/v1`) — bearer-less (`no_auth: true`), UA `opencode/2.2.5` + `x-opencode-client: opencode`; per-IP capped (429 `FreeUsageLimitError` when dry).
+8. `gemini-2.5-flash` (Google AI Studio Direct) — demoted last: 0/30 across the 2026-11-08 log (high-demand 503s + timeouts); 3.2s/3.8s budgets; 2 rotation keys.
+
+### Dead ends (probe-verified 2026-11-09 — don't wire these back without a re-probe)
+- agy/antigravity ranks return 200 whose body is a deprecation notice — both agy accounts unusable for grading.
+- `aug/*` → 502; `github/kimi-k3` → 400; `github/gemini-3.8-flash` → 200 with EMPTY content (trap); `oc/*` free → 429, `oc/*` paid → 402 billing.
+- `no-think/github/claude-haiku-5.5` still 502 empty upstream (stale Copilot OAuth suspected; refresh pending).
 
 ## Quota & Cooldown Mechanics
-- **Per-Key Quota Cooldown (`_key_cooldown`):** When a key returns `HTTP 429`, that specific key is cooled for `60s` (`3600s` on `HTTP 401/403`) and the next key is tried immediately with a fresh timeout budget. Subsequent hotkey presses skip the cooling key automatically.
-- **Per-Endpoint Cooldown (`_cooldown`):** If all keys on an endpoint fail, the endpoint cools for `15s` (`60s` on 429/401/403) and the next rank answers immediately.
-- **Keepalive & TTFT Enforcement:** Synthetic `chatcmpl-keepalive` SSE frames are ignored, and streams must emit a real content token within `timeout_sec` (3.0s–4.5s).
+- **Per-Key Quota Cooldown (`_key_cooldown`):** When a key returns `HTTP 429`, that specific key is cooled for `60s` and the next key is tried immediately with a fresh timeout budget. Bearer-less ranks feed sentinel `NO_AUTH_KEY` so the same bookkeeping applies.
+- **Per-Endpoint Cooldown (`_cooldown`):** all keys failed → endpoint cools `15s`; `HTTP 429` → `60s`; **`HTTP 401/403` → `auth_fail_cooldown_sec` (1800s)** so dead credentials stop taxing every question.
+- **Key-aware stalest retry:** when every endpoint is cooling, ranks whose keys are live are preferred over ranks parked with dead credentials.
+- **OpenCode routing contract (2026-11):** requests to `opencode.ai` carry a stable per-run `ses_<64-hex>` `x-opencode-session` and `x-opencode-client: opencode`.
+- **Answer-letter remap guard (`remap_answer_letter`):** before display, the returned "letter) text" is checked against the OCR'd option list; text-anchored re-mapping fixes OCR-debris letter/text mismatches. Conservative — unmatched shapes pass through unchanged and get logged.
+- **OmniRoute ranks:** router `omniroute-ichabod` container on ichabod must be up (`docker start omniroute-ichabod`; port 20128).
+- **Keepalive & TTFT Enforcement:** Synthetic `chatcmpl-keepalive` SSE frames are ignored, and streams must emit a real content token within `timeout_sec` (2.0s–3.2s).
 - **Windows Proxy Bypass:** `session.trust_env = False` prevents Windows WPAD proxy discovery stalls.
 - **Logs:** Written directly to `C:\Users\wowth\Desktop\TA-Grader\ta_grader.log` (with fallback to `%TEMP%\ta_grader.log`).
 
