@@ -4,6 +4,7 @@
 
 - Stored `TAGRADER` (NVIDIA NIM key) and `OPENROUTERTAGRADER` (OpenRouter key, user's own account) in Doppler `ichabod/prd` + untracked `Desktop\TA-Grader\.env`; never in tracked files. Transit-verified byte-for-byte after the PS→ssh stdin corruption was routed via scp'd base64 + remote decode.
 - Live probe with the OpenRouter key: HTTP 200 @ 1.5s, correct answer — **new rank 3 `openrouter-direct`** (`google/gemma-4-26b-a4b-it:free`, direct, no OmniRoute hop, user's own quota). `omniroute-gemma-free` demoted one slot as same-model backup (shared OmniRoute account). OpenRouter-direct measured 200 in 1.5s; NVIDIA NIM key stored but not yet wired (needs a model probe — see TODO).
+- **OpenCode Go ranks revived the same hour**: Birkinbagh account key (`oc_sk_…`, 51 chars) vaulted as `OPENCODEGO_BIRKINBAGH` and swapped into `OPENCODEGOTAGRADER` (Doppler + `.env`; prior DEAD value existed only in `.env` — the name was never in Doppler). Go probe HTTP 200, `mimo-v2.6-flash` answered correctly. Old dead value backed up under `OPENCODEGOTAGRADER_PREV` (base64-encoded; the old key pre-swap was not retrievable because the name simply did not exist in Doppler).
 - Contract suite now 17 tests; all four suites green locally + on ichabod, committed and pushed.
 
 ## 2026-11-09 00:43 UTC — cascade v5: haiku-first, verified-cheap ranks, Go demoted
