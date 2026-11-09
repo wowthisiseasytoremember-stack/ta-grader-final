@@ -9,6 +9,7 @@
   "auto_scroll_region": null,
   "hotkey_ocr": "menu",
   "hotkey_reselect": "alt+q",
+  "hotkey_vision": "alt+i",
   "hotkey_scroll": "alt+shift+z",
   "hotkey_set_scroll": "alt+shift+x",
   "hotkey_auto_scroll": "alt+shift+a",
@@ -208,5 +209,5 @@
   ],
   "endpoint_cooldown_sec": 15,
   "auth_fail_cooldown_sec": 1800,
-  "vision_enabled": true
+  "vision_enabled": false
 }

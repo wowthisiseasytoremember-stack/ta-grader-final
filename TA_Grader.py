@@ -230,7 +230,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
         }
     ],
     "endpoint_cooldown_sec": 15,
-    "vision_enabled": True,
+    "vision_enabled": False,
+    "hotkey_vision": "alt+i",
 }
 
 
@@ -885,7 +886,7 @@ class LLMClient:
     ) -> tuple[str, str]:
         """Try configured order, promoting vision endpoints only when OCR is weak."""
         last_err: Any = "no endpoints configured"
-        if not cfg.get("vision_enabled", True):
+        if not cfg.get("vision_enabled", False):
             image_b64 = None
             prefer_vision = False
 
@@ -1680,6 +1681,8 @@ class App:
                 keyboard.add_hotkey(cfg["hotkey_set_auto_scroll"], lambda: self._events.put("set_auto_scroll"), suppress=False)
             keyboard.add_hotkey(cfg["hotkey_clip"], lambda: self._events.put("clip"), suppress=False)
             keyboard.add_hotkey(cfg["hotkey_clear"], lambda: self._events.put("clear"), suppress=False)
+            if cfg.get("hotkey_vision"):
+                keyboard.add_hotkey(cfg["hotkey_vision"], lambda: self._events.put("vision"), suppress=False)
             if cfg.get("hotkey_reshow"):
                 keyboard.add_hotkey(cfg["hotkey_reshow"], lambda: self._events.put("reshow"), suppress=False)
             log(
@@ -1727,6 +1730,8 @@ class App:
                     self._do_set_auto_scroll()
                 elif ev == "clear":
                     self.overlays.clear_all()
+                elif ev == "vision":
+                    self._do_toggle_vision()
                 elif ev == "reshow":
                     self.overlays.reshow_last()
                 release_modifier_keys()
@@ -1744,6 +1749,23 @@ class App:
             return
         x, y, w, h = self.fixed_region
         self._process_region(x, y, w, h)
+
+    def _do_toggle_vision(self) -> None:
+        """Vision is opt-in: flip the in-session flag, announce, never persist to disk."""
+        on = not bool(self.cfg.get("vision_enabled", False))
+        self.cfg["vision_enabled"] = on
+        hk = self.cfg.get("hotkey_vision", "alt+i")
+        msg = (
+                f"Vision {'ON' if on else 'OFF'} — "
+                + ("images ride along when OCR fails"
+                   if on else "text-first only; OCR-degraded questions may answer weakly")
+            ) + f"\n\nPress {hk} to toggle."
+        log(f"Vision mode toggled {'ON' if on else 'OFF'} via hotkey (session only, not saved)")
+        if self.fixed_region:
+            x, y, w, h = self.fixed_region
+            self.overlays.show(msg, x + w, y, fg="#a0ffa0" if on else "#ffe0a0")
+        else:
+            log("Vision toggle before any region was defined — no overlay anchor; state still applies")
 
     def _do_reselect(self) -> None:
         self.overlays.clear_all()
@@ -1824,7 +1846,7 @@ class App:
                 combined_confidence,
                 self.cfg,
             )
-            prefer_vision = self.cfg.get("vision_enabled", True) and not ocr_usable
+            prefer_vision = self.cfg.get("vision_enabled", False) and not ocr_usable
             log(
                 f"Scroll OCR quality: usable={ocr_usable} ({ocr_reason}); "
                 f"strategy={'vision-first' if prefer_vision else 'text-first'}"
@@ -1967,7 +1989,7 @@ class App:
                     combined_confidence,
                     self.cfg,
                 )
-                prefer_vision = self.cfg.get("vision_enabled", True) and not ocr_usable
+                prefer_vision = self.cfg.get("vision_enabled", False) and not ocr_usable
                 log(
                     f"Auto-scroll: {len(segments)} segments, "
                     f"{combined.width}x{combined.height}px, "
@@ -2032,7 +2054,7 @@ class App:
                 log(f"OCR warning: {e}")
 
         ocr_usable, ocr_reason = assess_ocr_quality(text, ocr_confidence, cfg)
-        prefer_vision = cfg.get("vision_enabled", True) and bool(image_b64) and not ocr_usable
+        prefer_vision = cfg.get("vision_enabled", False) and bool(image_b64) and not ocr_usable
         log(
             f"OCR quality: usable={ocr_usable} ({ocr_reason}); "
             f"strategy={'vision-first' if prefer_vision else 'text-first'}"

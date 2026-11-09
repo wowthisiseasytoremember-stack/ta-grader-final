@@ -90,6 +90,14 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(direct["key_env"], ["OPENROUTERTAGRADER"])
         self.assertFalse(direct.get("supports_vision", True))
 
+    def test_vision_is_opt_in(self):
+        self.assertIs(CONFIG["vision_enabled"], False)
+        self.assertIn('"vision_enabled": False', SOURCE)
+        self.assertIn("def _do_toggle_vision", SOURCE)
+        self.assertIn("hotkey_vision", CONFIG)
+        self.assertIn('self._events.put("vision")', SOURCE)
+        self.assertIn('cfg.get("vision_enabled", False)', SOURCE)
+
     def test_auth_fail_cooldown_configured(self):
         self.assertGreaterEqual(int(CONFIG["auth_fail_cooldown_sec"]), 900)
         self.assertIn("auth_fail_cooldown_sec", SOURCE)

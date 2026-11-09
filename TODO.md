@@ -1,7 +1,7 @@
 # TA Grader — TODO
 
 ## Active Execution Tasks
-- [ ] **Restart the app** to load the v5.2 chain + vision budget bump (Go-haiku-5.5 → OpenRouter-haiku-5.5 → Copilot-4.5 → grok → gemma pair → 3× live Go flashes → free overflow → gemini). Config only re-reads on boot.
+- [ ] **Restart the app** to load the v5.3 opt-in-vision build (vision OFF on boot; `alt+i` toggles for the session). Config only re-reads on boot.
 - [ ] **gemini-2.5-flash rank 404s now** (was 503 high-demand before): check Google's openai-compat base URL / model id drift; it's last rank so cosmetic.
 - [ ] **NVIDIA NIM rank**: `TAGRADER` key is vaulted (Doppler + `.env`) but unwired — probe `integrate.api.nvidia.com` (e.g. nemotron-3.5-lightning / llama-3.3 / qwen-flash) for a sub-2s grader model, then add as a rank behind gemma.
 - [x] **OpenCode Go key solved (2026-11-09)**: the expired fleet-wide keys were bypassed — Birkinbagh account key (`oc_sk_…`, 51 chars) vaulted as `OPENCODEGO_BIRKINBAGH` and swapped into `OPENCODEGOTAGRADER` (Doppler + `.env`); mimo Go probe returned 200 with correct answer. Prior finding corrected: `OPENCODEGOTAGRADER` never existed in Doppler — the stale `.env` was the sole key source until now.

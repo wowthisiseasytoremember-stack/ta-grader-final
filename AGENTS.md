@@ -71,6 +71,7 @@ All screen capture modes use the same adaptive policy:
 ## Hotkeys
 - `menu` / `apps` — fixed region
 - `alt+q` — redefine fixed region
+- `alt+i` — **vision ON/OFF (opt-in, session-only; starts OFF every boot)**
 - `alt+shift+x` — set manual scroll region
 - `alt+shift+z` — manual scroll capture (ENTER each segment, ESC to finish)
 - `alt+shift+s` — set auto-scroll X bounds
@@ -78,6 +79,11 @@ All screen capture modes use the same adaptive policy:
 - `alt+c` — clipboard
 - `alt+v` — clear overlays
 - `alt+x` — re-show last answer
+
+## Vision policy
+- **Opt-in only (2026-11-09):** `vision_enabled` defaults to `False` in code and config; the rank chain reads `cfg.get("vision_enabled", False)`.
+- Vision engages when OCR quality is weak AND the toggle is on; with it off, weak-OCR questions run text-first (may answer weakly — user accepts the tradeoff to kill the 02:17:32-class all-rank timeouts).
+- The hotkey toggles in memory only; saved config on disk stays `false` so every restart boots text-first.
 
 ## Secret handling
 - Read environment/.env first; use Doppler (`ichabod` / `prd`) only as fallback.

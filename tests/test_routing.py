@@ -110,6 +110,7 @@ def make_cfg(endpoints=None):
         "system_prompt": "JSON",
         "endpoints": endpoints or [make_ep()],
         "max_tokens": 512,
+        "vision_enabled": True,
     }
 
 

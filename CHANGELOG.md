@@ -2,6 +2,12 @@
 
 ## 2026-11-09 08:41 UTC — v5.2: haiku-5.5 double route (Go → OpenRouter) on top
 
+### v5.3 (same hour): vision killed to opt-in
+- User call after the 02:17:32 all-rank vision timeout: **vision-first is now opt-in and OFF by default**. `hotkey alt+i` toggles `vision_enabled` in-memory for the session (green/amber overlay announces state; never persists — every boot starts text-first).
+- Defaults flipped in `DEFAULT_CONFIG` and all four read sites `.get("vision_enabled", False)`; the LLM strip-guard also uses the False fallback. Weak-OCR questions now answer text-first even when OCR is garbage (user accepts the quality tradeoff).
+- Routing harness `make_cfg` sets `vision_enabled: True` so the vision-promotion tests still test the promotion path, not the off path.
+- Contract suite 19 tests; all four suites green locally; config/template carry `vision_enabled: false` + `hotkey_vision: alt+i`.
+
 User directive: haiku-5.5 first, attempted via OpenCode Go then via OpenRouter.
 
 - **Miss vs catalog naming:** OpenCode Go's model list shows `claude-haiku-5-5` (hyphens). The dotted `claude-haiku-5.5` returns 400 "Model is unavailable" — archived here so nobody re-trips on it.
