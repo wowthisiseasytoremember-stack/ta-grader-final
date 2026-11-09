@@ -21,6 +21,7 @@ class ContractTests(unittest.TestCase):
             [
                 "omniroute-haiku",
                 "xai-grok-fast",
+                "openrouter-direct",
                 "omniroute-gemma-free",
                 "opencode-mimo-flash",
                 "opencode-deepseek-flash",
@@ -66,6 +67,13 @@ class ContractTests(unittest.TestCase):
         self.assertIn("-free", free["model"])
         self.assertFalse(free.get("supports_vision", True))
         self.assertEqual(free["headers"].get("x-opencode-client"), "opencode")
+
+    def test_openrouter_direct_rank_wire(self):
+        direct = next(ep for ep in CONFIG["endpoints"] if ep["name"] == "openrouter-direct")
+        self.assertEqual(direct["url"], "https://openrouter.ai/api/v1/chat/completions")
+        self.assertEqual(direct["model"], "google/gemma-4-26b-a4b-it:free")
+        self.assertEqual(direct["key_env"], ["OPENROUTERTAGRADER"])
+        self.assertFalse(direct.get("supports_vision", True))
 
     def test_auth_fail_cooldown_configured(self):
         self.assertGreaterEqual(int(CONFIG["auth_fail_cooldown_sec"]), 900)

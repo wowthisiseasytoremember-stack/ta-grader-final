@@ -1,5 +1,11 @@
 # Changelog — TA Grader
 
+## 2026-11-09 08:20 UTC — v5.1: keys vaulted + openrouter-direct rank wired
+
+- Stored `TAGRADER` (NVIDIA NIM key) and `OPENROUTERTAGRADER` (OpenRouter key, user's own account) in Doppler `ichabod/prd` + untracked `Desktop\TA-Grader\.env`; never in tracked files. Transit-verified byte-for-byte after the PS→ssh stdin corruption was routed via scp'd base64 + remote decode.
+- Live probe with the OpenRouter key: HTTP 200 @ 1.5s, correct answer — **new rank 3 `openrouter-direct`** (`google/gemma-4-26b-a4b-it:free`, direct, no OmniRoute hop, user's own quota). `omniroute-gemma-free` demoted one slot as same-model backup (shared OmniRoute account). OpenRouter-direct measured 200 in 1.5s; NVIDIA NIM key stored but not yet wired (needs a model probe — see TODO).
+- Contract suite now 17 tests; all four suites green locally + on ichabod, committed and pushed.
+
 ## 2026-11-09 00:43 UTC — cascade v5: haiku-first, verified-cheap ranks, Go demoted
 
 Log audit showed the chain degraded to a single live endpoint (xai-grok 64/71) while mimo/deepseek/glm 403'd every call, gemini went 0/30, and the OmniRoute container sat dead for two days. The OmniRoute container was restarted on ichabod, and a full-model census (1972 models) + live probe matrix picked the final chain.

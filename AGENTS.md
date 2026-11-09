@@ -18,7 +18,7 @@ entrypoints:
   - TA_Grader.py
   - config.json
   - Run_TA_Grader.bat
-updated: '2026-11-09 00:43 UTC'
+updated: '2026-11-09 08:20 UTC'
 ---
 
 # AGENTS.md — TA Grader
@@ -38,12 +38,16 @@ All screen capture modes use the same adaptive policy:
 ## Endpoint priority (Verified 8-Rank Chain, 2026-11-09)
 1. `omniroute-haiku` (`no-think/github/claude-haiku-4.5` via OmniRoute Tailscale `100.122.158.123:20128`) — **rank 1 by user call: fast (~1.4s warm) + smart, near-zero Copilot burn**. Earlier "github router retired haiku-4.5" note was wrong — verified 200 three times 2026-11-09.
 2. `xai-grok-fast` (`grok-4.20-0309-non-reasoning` via xAI Direct) — ~0.85s warm p50, proven workhorse (64/71 in the 2026-11-08 session).
-3. `omniroute-gemma-free` (`openrouter/google/gemma-4-26b-a4b-it:free` via OmniRoute) — ~1.1s warm, $0, correct answer on probe; text-only.
-4. `opencode-mimo-flash` (`mimo-v2.6-flash` via OpenCode Go `inference/go`) — ~1.94s warm p50, native vision, native `json_object`. **Dormant until a fresh Console key lands — every Go key in Doppler+env expired server-side 2026-11.**
-5. `opencode-deepseek-flash` (`deepseek-v4.1-flash` via OpenCode Go, `thinking: disabled`) — ~1.06s warm p50.
-6. `opencode-glm-flash` (`glm-5.3-flash` via OpenCode Go) — ~1.20s warm p50.
-7. `opencode-free` (overflow; `deepseek-v4.1-flash-free` via `opencode.ai/zen/v1`) — bearer-less (`no_auth: true`), UA `opencode/2.2.5` + `x-opencode-client: opencode`; per-IP capped (429 `FreeUsageLimitError` when dry).
-8. `gemini-2.5-flash` (Google AI Studio Direct) — demoted last: 0/30 across the 2026-11-08 log (high-demand 503s + timeouts); 3.2s/3.8s budgets; 2 rotation keys.
+3. `openrouter-direct` (`google/gemma-4-26b-a4b-it:free` via `openrouter.ai/api/v1`, key `OPENROUTERTAGRADER` — user's own account, no middle hop) — 200 @ ~1.5s from the app machine, $0, correct answer on probe 2026-11-09 08:20 UTC; text-only.
+4. `omniroute-gemma-free` (same model via OmniRoute's shared OpenRouter accounts) — same-model insurance for the direct rank (and vice versa).
+5. `opencode-mimo-flash` (`mimo-v2.6-flash` via OpenCode Go `inference/go`) — ~1.94s warm p50, native vision, native `json_object`. **Dormant until a fresh Console key lands — every Go key in Doppler+env expired server-side 2026-11.**
+6. `opencode-deepseek-flash` (`deepseek-v4.1-flash` via OpenCode Go, `thinking: disabled`) — ~1.06s warm p50.
+7. `opencode-glm-flash` (`glm-5.3-flash` via OpenCode Go) — ~1.20s warm p50.
+8. `opencode-free` (overflow; `deepseek-v4.1-flash-free` via `opencode.ai/zen/v1`) — bearer-less (`no_auth: true`), UA `opencode/2.2.5` + `x-opencode-client: opencode`; per-IP capped (429 `FreeUsageLimitError` when dry).
+9. `gemini-2.5-flash` (Google AI Studio Direct) — demoted last: 0/30 across the 2026-11-08 log (high-demand 503s + timeouts); 3.2s/3.8s budgets; 2 rotation keys.
+
+### Storable-but-unwired
+- `TAGRADER` (NVIDIA NIM) in Doppler + `.env` — no rank yet; probe `integrate.api.nvidia.com` for a sub-2s grader model before wiring.
 
 ### Dead ends (probe-verified 2026-11-09 — don't wire these back without a re-probe)
 - agy/antigravity ranks return 200 whose body is a deprecation notice — both agy accounts unusable for grading.
