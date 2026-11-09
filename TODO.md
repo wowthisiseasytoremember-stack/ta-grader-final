@@ -1,7 +1,7 @@
 # TA Grader — TODO
 
 ## Active Execution Tasks
-- [ ] **Restart the app** to load the v5.1 chain (haiku 1, grok, openrouter-direct, gemma backup, **Go trio revived on the Birkinbagh key**, free overflow, gemini last). Config only re-reads on boot.
+- [ ] **Restart the app** to load the v5.2 chain (Go-haiku-5.5 → OpenRouter-haiku-5.5 → Copilot-4.5 → grok → gemma pair → 3× live Go flashes → free overflow → gemini). Config only re-reads on boot.
 - [ ] **NVIDIA NIM rank**: `TAGRADER` key is vaulted (Doppler + `.env`) but unwired — probe `integrate.api.nvidia.com` (e.g. nemotron-3.5-lightning / llama-3.3 / qwen-flash) for a sub-2s grader model, then add as a rank behind gemma.
 - [x] **OpenCode Go key solved (2026-11-09)**: the expired fleet-wide keys were bypassed — Birkinbagh account key (`oc_sk_…`, 51 chars) vaulted as `OPENCODEGO_BIRKINBAGH` and swapped into `OPENCODEGOTAGRADER` (Doppler + `.env`); mimo Go probe returned 200 with correct answer. Prior finding corrected: `OPENCODEGOTAGRADER` never existed in Doppler — the stale `.env` was the sole key source until now.
 - [ ] **OmniRoute Copilot token refresh:** `no-think/github/claude-haiku-5.5` and `sonnet-5.5` 502 "empty upstream" (stale OAuth suspected). Refresh in OmniRoute settings (`:20128` on ichabod). Until then haiku-4.5 covers the route.

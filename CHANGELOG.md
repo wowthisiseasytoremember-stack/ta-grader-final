@@ -1,5 +1,16 @@
 # Changelog — TA Grader
 
+## 2026-11-09 08:41 UTC — v5.2: haiku-5.5 double route (Go → OpenRouter) on top
+
+User directive: haiku-5.5 first, attempted via OpenCode Go then via OpenRouter.
+
+- **Miss vs catalog naming:** OpenCode Go's model list shows `claude-haiku-5-5` (hyphens). The dotted `claude-haiku-5.5` returns 400 "Model is unavailable" — archived here so nobody re-trips on it.
+- **New rank 1 `opencodego-haiku5.5`:** `claude-haiku-5-5` via Go `inference/go`, key `OPENCODEGOTAGRADER` (Birkinbagh). Probed 3× — HTTP 200 at 920–968ms total, content `**A) 4**`, finish stop. Vision true; `supports_response_format` false (json_object compat unknown on the Claude-via-Go bridge).
+- **New rank 2 `openrouter-haiku5.5`:** `anthropic/claude-haiku-5.5` via OpenRouter (user's own key `OPENROUTERTAGRADER`), HTTP 200 on probe. Same timeouts (2.6s TTFT / 3.2s wall).
+- **Go catalog note:** 30 models behind `OPENCODEGOTAGRADER` incl. `claude-haiku-5-5`, `gemini-4-argon`, `grok-4.7`, `kimi-k3`, `qwen3.8`, `minimax-m3.1-flash` — spare options for later experiments, not wired now.
+- `omniroute-haiku` (free Copilot 4.5) drops to rank 3 — free insurance under the 5.5 pair; OmniRoute github/claude-haiku-5.5 still 502 (token refresh pending).
+- Contract suite 18 tests; all four suites green locally.
+
 ## 2026-11-09 08:20 UTC — v5.1: keys vaulted + openrouter-direct rank wired
 
 - Stored `TAGRADER` (NVIDIA NIM key) and `OPENROUTERTAGRADER` (OpenRouter key, user's own account) in Doppler `ichabod/prd` + untracked `Desktop\TA-Grader\.env`; never in tracked files. Transit-verified byte-for-byte after the PS→ssh stdin corruption was routed via scp'd base64 + remote decode.

@@ -18,7 +18,7 @@ entrypoints:
   - TA_Grader.py
   - config.json
   - Run_TA_Grader.bat
-updated: '2026-11-09 08:20 UTC'
+updated: '2026-11-09 08:41 UTC'
 ---
 
 # AGENTS.md — TA Grader
@@ -35,16 +35,19 @@ All screen capture modes use the same adaptive policy:
 4. Strong OCR (`>= 65.0` confidence and `>= 3` option markers) sends clean text to the primary chain.
 5. Weak OCR promotes vision-capable endpoints first and omits the suspect OCR transcript so it cannot bias the visual read.
 
-## Endpoint priority (Verified 8-Rank Chain, 2026-11-09)
-1. `omniroute-haiku` (`no-think/github/claude-haiku-4.5` via OmniRoute Tailscale `100.122.158.123:20128`) — **rank 1 by user call: fast (~1.4s warm) + smart, near-zero Copilot burn**. Earlier "github router retired haiku-4.5" note was wrong — verified 200 three times 2026-11-09.
-2. `xai-grok-fast` (`grok-4.20-0309-non-reasoning` via xAI Direct) — ~0.85s warm p50, proven workhorse (64/71 in the 2026-11-08 session).
-3. `openrouter-direct` (`google/gemma-4-26b-a4b-it:free` via `openrouter.ai/api/v1`, key `OPENROUTERTAGRADER` — user's own account, no middle hop) — 200 @ ~1.5s from the app machine, $0, correct answer on probe 2026-11-09 08:20 UTC; text-only.
-4. `omniroute-gemma-free` (same model via OmniRoute's shared OpenRouter accounts) — same-model insurance for the direct rank (and vice versa).
-5. `opencode-mimo-flash` (`mimo-v2.6-flash` via OpenCode Go `inference/go`) — ~1.94s warm p50, native vision, native `json_object`. **LIVE again as of 2026-11-09 08:20 UTC: the Birkinbagh account key (`oc_sk_…`, vaulted as `OPENCODEGO_BIRKINBAGH`) probed HTTP 200 with a correct answer; it now fills `OPENCODEGOTAGRADER` in Doppler + `.env` (the old dead key never existed in Doppler — stale `.env` was the only source).**
-6. `opencode-deepseek-flash` (`deepseek-v4.1-flash` via OpenCode Go, `thinking: disabled`) — ~1.06s warm p50. Same live key.
-7. `opencode-glm-flash` (`glm-5.3-flash` via OpenCode Go) — ~1.20s warm p50. Same live key.
-8. `opencode-free` (overflow; `deepseek-v4.1-flash-free` via `opencode.ai/zen/v1`) — bearer-less (`no_auth: true`), UA `opencode/2.2.5` + `x-opencode-client: opencode`; per-IP capped (429 `FreeUsageLimitError` when dry).
-9. `gemini-2.5-flash` (Google AI Studio Direct) — demoted last: 0/30 across the 2026-11-08 log (high-demand 503s + timeouts); 3.2s/3.8s budgets; 2 rotation keys.
+## Endpoint priority (Verified 11-Rank Chain, 2026-11-09)
+1. **`opencodego-haiku5.5`** (`claude-haiku-5-5` via OpenCode Go `inference/go`, key `OPENCODEGOTAGRADER` = Birkinbagh account) — **rank 1 by user call**: ~0.95s warm, correct on 3 probes. Spell the id with hyphens (`claude-haiku-5-5`); dots → 400 unavailable.
+2. **`openrouter-haiku5.5`** (`anthropic/claude-haiku-5.5` via `openrouter.ai/api/v1`, key `OPENROUTERTAGRADER`) — same model, second route (user's own account, paid).
+3. `omniroute-haiku` (`no-think/github/claude-haiku-4.5` via OmniRoute Tailscale `100.122.158.123:20128`) — free Copilot insurance; ~1.4s warm near-zero burn.
+4. `xai-grok-fast` (`grok-4.20-0309-non-reasoning` via xAI Direct) — ~0.85s warm p50, proven workhorse (64/71 in the 2026-11-08 session).
+5. `openrouter-direct` (`google/gemma-4-26b-a4b-it:free` via `openrouter.ai/api/v1`, key `OPENROUTERTAGRADER`) — 200 @ ~1.5s, $0; text-only.
+6. `omniroute-gemma-free` (same model via OmniRoute's shared OpenRouter accounts) — same-model insurance.
+7. `opencode-mimo-flash` (`mimo-v2.6-flash` via OpenCode Go) — ~1.94s warm p50, native vision, native `json_object`. Key live (Birkinbagh; verified 2026-11-09).
+8. `opencode-deepseek-flash` (`deepseek-v4.1-flash` via OpenCode Go, `thinking: disabled`) — ~1.06s warm p50. Same live key.
+9. `opencode-glm-flash` (`glm-5.3-flash` via OpenCode Go) — ~1.20s warm p50. Same live key.
+10. `opencode-free` (overflow; `deepseek-v4.1-flash-free` via `opencode.ai/zen/v1`) — bearer-less (`no_auth: true`), UA `opencode/2.2.5` + `x-opencode-client: opencode`; per-IP capped (429 `FreeUsageLimitError` when dry).
+11. `gemini-2.5-flash` (Google AI Studio Direct) — demoted last: 0/30 across the 2026-11-08 log (high-demand 503s + timeouts); 3.2s/3.8s budgets; 2 rotation keys.
+- **Go catalog spares (not wired):** `claude-haiku-5-5` is joined on Go by `gemini-4-argon`, `grok-4.7`, `kimi-k3`, `kimi-k3.1-pro`, `qwen3.8-flash`, `minimax-m3.1-flash`, `deepseek-v4-pro`, `-pro` variants, `hy3/hy4`, `mimo-v2.6-pro`, free tiers (`beam-free`, `crouton-alpha-free`, `iceman-contributor-free`) — 30 models total behind the same key.
 
 ### Storable-but-unwired
 - `TAGRADER` (NVIDIA NIM) in Doppler + `.env` — no rank yet; probe `integrate.api.nvidia.com` for a sub-2s grader model before wiring.

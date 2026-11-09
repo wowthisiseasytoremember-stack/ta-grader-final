@@ -19,6 +19,8 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(
             [ep["name"] for ep in CONFIG["endpoints"]],
             [
+                "opencodego-haiku5.5",
+                "openrouter-haiku5.5",
                 "omniroute-haiku",
                 "xai-grok-fast",
                 "openrouter-direct",
@@ -67,6 +69,19 @@ class ContractTests(unittest.TestCase):
         self.assertIn("-free", free["model"])
         self.assertFalse(free.get("supports_vision", True))
         self.assertEqual(free["headers"].get("x-opencode-client"), "opencode")
+
+    def test_haiku55_double_route(self):
+        go = next(ep for ep in CONFIG["endpoints"] if ep["name"] == "opencodego-haiku5.5")
+        self.assertEqual(go["url"], "https://opencode.ai/inference/go/openai/v1/chat/completions")
+        # OpenCode Go spells it with hyphens; dots return 400 "Model is unavailable".
+        self.assertEqual(go["model"], "claude-haiku-5-5")
+        self.assertEqual(go["key_env"], ["OPENCODEGOTAGRADER"])
+        self.assertTrue(go["supports_vision"])
+        orr = next(ep for ep in CONFIG["endpoints"] if ep["name"] == "openrouter-haiku5.5")
+        self.assertEqual(orr["url"], "https://openrouter.ai/api/v1/chat/completions")
+        self.assertEqual(orr["model"], "anthropic/claude-haiku-5.5")
+        self.assertEqual(orr["key_env"], ["OPENROUTERTAGRADER"])
+        self.assertTrue(orr["supports_vision"])
 
     def test_openrouter_direct_rank_wire(self):
         direct = next(ep for ep in CONFIG["endpoints"] if ep["name"] == "openrouter-direct")
