@@ -98,6 +98,39 @@ class ContractTests(unittest.TestCase):
         self.assertIn('self._events.put("vision")', SOURCE)
         self.assertIn('cfg.get("vision_enabled", False)', SOURCE)
 
+    def test_vision_toggle_never_persists(self):
+        # Audit M1: region saves must not serialize an alt+i session toggle to disk.
+        self.assertIn("def _save_disk_config", SOURCE)
+        self.assertIn("self._disk_vision", SOURCE)
+        self.assertIn('disk["vision_enabled"] = self._disk_vision', SOURCE)
+        self.assertNotIn("config_for_disk(self.cfg)", SOURCE)
+
+    def test_default_config_mirrors_live_chain(self):
+        # Audit M2: the boot template must not drift from the shipped chain.
+        # (DEFAULT_CONFIG holds a PERSONA reference, so it can't be literal_eval'd;
+        # assert the structural facts that rotted instead.)
+        self.assertIn('"name": "opencodego-haiku5.5"', SOURCE)
+        self.assertIn('"name": "openrouter-haiku5.5"', SOURCE)
+        self.assertIn('"name": "gemini-2.5-flash"', SOURCE)
+        self.assertNotIn('"name": "gemini-flash-lite"', SOURCE)
+        self.assertNotIn("192.168.1.200", SOURCE)
+        names = [e["name"] for e in CONFIG["endpoints"]]
+        for name in names:
+            self.assertIn(f'"name": "{name}"', SOURCE)
+
+    def test_persona_matches_live_prompt(self):
+        # Audit M2: PERSONA drifted from the config system_prompt once already.
+        import ast
+        tree = ast.parse(SOURCE)
+        persona = None
+        for node in tree.body:
+            if isinstance(node, ast.Assign) and any(
+                getattr(t, "id", None) == "PERSONA" for t in node.targets
+            ):
+                persona = ast.literal_eval(node.value)
+        self.assertIsNotNone(persona)
+        self.assertEqual(persona, CONFIG["system_prompt"])
+
     def test_auth_fail_cooldown_configured(self):
         self.assertGreaterEqual(int(CONFIG["auth_fail_cooldown_sec"]), 900)
         self.assertIn("auth_fail_cooldown_sec", SOURCE)
@@ -134,7 +167,10 @@ class ContractTests(unittest.TestCase):
         self.assertNotIn("_verified_keys", SOURCE)
         self.assertIn("_SECRET_CACHE", SOURCE)
         self.assertIn("config_for_disk", SOURCE)
-        self.assertEqual(SOURCE.count("config_for_disk(self.cfg)"), 3)
+        # Audit M1 (v5.4): runtime saves go through _save_disk_config, which pins
+        # vision_enabled to the boot-time value; no direct self.cfg serialization.
+        self.assertEqual(SOURCE.count("config_for_disk(self.cfg)"), 0)
+        self.assertEqual(SOURCE.count("self._save_disk_config()"), 3)
 
     def test_adaptive_capture_core(self):
         self.assertIn("capture_region_image", SOURCE)

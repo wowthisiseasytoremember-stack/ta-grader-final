@@ -1,7 +1,7 @@
 # TA Grader — TODO
 
 ## Active Execution Tasks
-- [ ] **Restart the app** to load the v5.3 opt-in-vision build (vision OFF on boot; `alt+i` toggles for the session). Config only re-reads on boot.
+- [ ] **Restart the app** to load the v5.4 audit-fix build (opt-in vision still OFF on boot; `alt+i` toggles the session; region saves no longer leak the toggle to disk). Config only re-reads on boot.
 - [ ] **gemini-2.5-flash rank 404s now** (was 503 high-demand before): check Google's openai-compat base URL / model id drift; it's last rank so cosmetic.
 - [ ] **NVIDIA NIM rank**: `TAGRADER` key is vaulted (Doppler + `.env`) but unwired — probe `integrate.api.nvidia.com` (e.g. nemotron-3.5-lightning / llama-3.3 / qwen-flash) for a sub-2s grader model, then add as a rank behind gemma.
 - [x] **OpenCode Go key solved (2026-11-09)**: the expired fleet-wide keys were bypassed — Birkinbagh account key (`oc_sk_…`, 51 chars) vaulted as `OPENCODEGO_BIRKINBAGH` and swapped into `OPENCODEGOTAGRADER` (Doppler + `.env`); mimo Go probe returned 200 with correct answer. Prior finding corrected: `OPENCODEGOTAGRADER` never existed in Doppler — the stale `.env` was the sole key source until now.
@@ -10,6 +10,7 @@
 - [ ] `ta_grader.log` (254KB) will rotate eventually — wire a size-cap or date rotation before it bloats the desktop overlay box.
 
 ## Done
+- [x] v5.4 audit fixes (2026-11-10): independent tabula-rasa audit → fixed disk-vision leak (`_save_disk_config()` pins boot-time `vision_enabled`; all 3 region saves routed through it), DEFAULT_CONFIG refreshed to the live 11-rank mirror + PERSONA aligned to the live prompt (parity-checked field-for-field), README rewritten to the live chain, `HTTP-Referer` fixed to the real repo, CHANGELOG stamps reconciled to commit times, contract suite 22 tests green both machines.
 - [x] Keys vaulted (2026-11-09): `TAGRADER` (NVIDIA NIM) + `OPENROUTERTAGRADER` (OpenRouter, user's own account) into Doppler `ichabod/prd` and untracked `.env`; OpenRouter key live-verified (200 @ 1.5s, correct answer).
 - [x] Routing v5 (2026-11-09): 8-rank chain re-ordered by probe evidence — `omniroute-haiku` rank 1 (user call: fast+smart), grok rank 2 (proven 64/71), `omniroute-gemma-free` rank 3 ($0, 200 @ ~1.1s), Go trio demoted to 4–6 pending new key, anonymous `opencode-free` overflow, gemini last (0/30 record). Probe matrix logged in CHANGELOG: agy accounts deprecated-content, aug 502, oc free 429 / paid 402, kimi-k3 400, gemini-3.8-flash empty-content trap, mai-code-1.1-flash viable spare.
 - [x] Behavior fixes (2026-11-08/09): auth-fail endpoint parking (1800s), key-aware stalest retry, stable per-run `ses_<64-hex>` OpenCode session + client headers, `remap_answer_letter()` display guard wired into `_run_llm` (live-verified 3 cases: mismatch→remap, consistent→unchanged, no-options→conservative).

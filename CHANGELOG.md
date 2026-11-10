@@ -1,12 +1,30 @@
 # Changelog — TA Grader
 
-## 2026-11-09 08:41 UTC — v5.2: haiku-5.5 double route (Go → OpenRouter) on top
+## 2026-11-10 00:29 UTC — v5.4: audit fixes — disk-vision leak, DEFAULT_CONFIG refresh, docs
+- Independent tabula-rasa audit (fresh-eyes subagent, read-only) verdict: core healthy — perfect file parity, 38 tests green both machines, no key material in the repo — with one real bug + doc rot.
+- **M1 fixed (the bug):** `alt+i` session toggle could leak to disk — region saves (`_do_reselect`, `_do_set_scroll`, `_do_set_auto_scroll`) serialized `self.cfg` including the toggled `vision_enabled`, so a restart could boot vision-ON. All three now route through `_save_disk_config()`, which overwrites `vision_enabled` with `self._disk_vision` captured from disk at boot. Hotkey remains session-only by construction.
+- **M2 fixed:** `DEFAULT_CONFIG` carried a stale 5-rank ghost chain (retired `gemini-3.1-flash-lite`, LAN `192.168.1.200` OmniRoute URL, duplicate hotkeys) — regenerated as a field-for-field mirror of the live 11-rank `config.json` (env names only, `auth_fail_cooldown_sec` included, `system_prompt` refs `PERSONA`). `PERSONA` itself was stale (old general-ed prompt) — aligned verbatim to the live config prompt. A parity check now fails on any drift (endpoints, budgets, scaled keys).
+- **M4 fixed:** README routing-v3 rot (10 dead ranks, wrong repo/secret-names) rewritten to the live 11-rank list + Doppler `prd`.
+- **Referer fixed:** `HTTP-Referer` pointed at a non-existent repo (`justinryan/ta-grader`) → `wowthisiseasytoremember-stack/ta-grader-final`.
+- **M6 fixed:** changelog stamps reconciled to commit times (v5 00:45, v5.1 08:22, v5.2 08:43, hotfix 10:21, v5.3 23:38 UTC; v5.3 was nested under a stale header).
+- Contract suite 22 tests (adds `_save_disk_config` exists / no direct `CONFIG_PATH.write_text(json.dumps(config_for_disk(self.cfg)))` in source / boot-time capture / DEFAULT_CONFIG-vs-live-chain / PERSONA-equals-live-prompt); all four suites green locally + on ichabod.
 
-### v5.3 (same hour): vision killed to opt-in
+## 2026-11-09 23:38 UTC — v5.3: vision killed to opt-in
 - User call after the 02:17:32 all-rank vision timeout: **vision-first is now opt-in and OFF by default**. `hotkey alt+i` toggles `vision_enabled` in-memory for the session (green/amber overlay announces state; never persists — every boot starts text-first).
 - Defaults flipped in `DEFAULT_CONFIG` and all four read sites `.get("vision_enabled", False)`; the LLM strip-guard also uses the False fallback. Weak-OCR questions now answer text-first even when OCR is garbage (user accepts the quality tradeoff).
 - Routing harness `make_cfg` sets `vision_enabled: True` so the vision-promotion tests still test the promotion path, not the off path.
 - Contract suite 19 tests; all four suites green locally; config/template carry `vision_enabled: false` + `hotkey_vision: alt+i`.
+
+## 2026-11-09 10:21 UTC — v5.2 hotfix: vision budgets widened for image payloads
+
+The 02:17:32 vision-first question failed on every rank — the 2.2–2.6s TTFT budgets were tuned from text probes and don't fit image-payload latency.
+
+- Vision ranks widened: Go/OpenRouter haiku 3.2/4.0, omniroute-haiku 2.8/3.6, grok 2.8/3.4, Go flashes 3.0/3.8 etc. Text-only ranks (gemma pair, opencode-free) keep tight budgets.
+- Re-verified from the app's own vantage after the bump: Go haiku vision stream 200 @ ~1.08s; OpenRouter haiku vision stream 200 @ ~1.34s (image rendered on this machine, payload shape identical to the app's).
+- Separate: `gemini-2.5-flash` now 404s (URL/model drift on Google's openai-compat path) — last rank, cosmetic until probed.
+- Contract suite 18 tests; all four suites green locally.
+
+## 2026-11-09 08:43 UTC — v5.2: haiku-5.5 double route (Go → OpenRouter) on top
 
 User directive: haiku-5.5 first, attempted via OpenCode Go then via OpenRouter.
 
@@ -15,17 +33,16 @@ User directive: haiku-5.5 first, attempted via OpenCode Go then via OpenRouter.
 - **New rank 2 `openrouter-haiku5.5`:** `anthropic/claude-haiku-5.5` via OpenRouter (user's own key `OPENROUTERTAGRADER`), HTTP 200 on probe. Same timeouts (2.6s TTFT / 3.2s wall).
 - **Go catalog note:** 30 models behind `OPENCODEGOTAGRADER` incl. `claude-haiku-5-5`, `gemini-4-argon`, `grok-4.7`, `kimi-k3`, `qwen3.8`, `minimax-m3.1-flash` — spare options for later experiments, not wired now.
 - `omniroute-haiku` (free Copilot 4.5) drops to rank 3 — free insurance under the 5.5 pair; OmniRoute github/claude-haiku-5.5 still 502 (token refresh pending).
-- **Vision budget bump (v5.2 hotfix, same hour):** the 02:17:32 vision-first question failed on every rank — old 2.2–2.6s TTFT budgets don't fit image-payload latency (text-only probes had masked this). Vision ranks widened: Go/OpenRouter haiku 3.2/4.0, omniroute-haiku 2.8/3.6, grok 2.8/3.4, Go flashes 3.0/3.8 etc. Re-verified from the app's own vantage after bump: Go haiku vision stream 200 @ ~1.08s; OpenRouter haiku vision stream 200 @ ~1.34s. Text-only ranks (gemma pair, opencode-free) keep tight budgets. Separate: `gemini-2.5-flash` now 404s (URL/model drift on Google's openai-compat path) — last rank, cosmetic until probed.
 - Contract suite 18 tests; all four suites green locally.
 
-## 2026-11-09 08:20 UTC — v5.1: keys vaulted + openrouter-direct rank wired
+## 2026-11-09 08:22 UTC — v5.1: keys vaulted + openrouter-direct rank wired
 
 - Stored `TAGRADER` (NVIDIA NIM key) and `OPENROUTERTAGRADER` (OpenRouter key, user's own account) in Doppler `ichabod/prd` + untracked `Desktop\TA-Grader\.env`; never in tracked files. Transit-verified byte-for-byte after the PS→ssh stdin corruption was routed via scp'd base64 + remote decode.
 - Live probe with the OpenRouter key: HTTP 200 @ 1.5s, correct answer — **new rank 3 `openrouter-direct`** (`google/gemma-4-26b-a4b-it:free`, direct, no OmniRoute hop, user's own quota). `omniroute-gemma-free` demoted one slot as same-model backup (shared OmniRoute account). OpenRouter-direct measured 200 in 1.5s; NVIDIA NIM key stored but not yet wired (needs a model probe — see TODO).
 - **OpenCode Go ranks revived the same hour**: Birkinbagh account key (`oc_sk_…`, 51 chars) vaulted as `OPENCODEGO_BIRKINBAGH` and swapped into `OPENCODEGOTAGRADER` (Doppler + `.env`; prior DEAD value existed only in `.env` — the name was never in Doppler). Go probe HTTP 200, `mimo-v2.6-flash` answered correctly. Old dead value backed up under `OPENCODEGOTAGRADER_PREV` (base64-encoded; the old key pre-swap was not retrievable because the name simply did not exist in Doppler).
 - Contract suite now 17 tests; all four suites green locally + on ichabod, committed and pushed.
 
-## 2026-11-09 00:43 UTC — cascade v5: haiku-first, verified-cheap ranks, Go demoted
+## 2026-11-09 00:45 UTC — cascade v5: haiku-first, verified-cheap ranks, Go demoted
 
 Log audit showed the chain degraded to a single live endpoint (xai-grok 64/71) while mimo/deepseek/glm 403'd every call, gemini went 0/30, and the OmniRoute container sat dead for two days. The OmniRoute container was restarted on ichabod, and a full-model census (1972 models) + live probe matrix picked the final chain.
 

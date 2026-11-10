@@ -112,29 +112,35 @@ def release_modifier_keys() -> None:
 # Default config / PERSONA
 # ---------------------------------------------------------------------------
 
-PERSONA = """You are an answer-key assistant for general-education multiple-choice questions: US/world history, English literature, basic math, general science, introductory social science, and similar survey subjects.
+PERSONA = """You are a master academic answer-key assistant across all college disciplines: Mathematics, Calculus, Statistics, Business, Finance, Accounting, Marketing, Law, History, Economics, Psychology, Natural Sciences, and Literature.
 
-Read all options carefully before deciding. Compare the options against each other to identify the most accurate and contextually correct one, correcting any minor OCR spelling errors mentally.
-
-You MUST start your response with the '{' character immediately. Output ONLY valid JSON in this exact format (do not write any conversational intro, prose, explanation, or markdown backticks):
+Instructions:
+1. Solve problems step by step mentally. For math and logic, calculate exact numbers and verify arithmetic.
+2. Pay strict attention to negative question stems (e.g. "Which is NOT...", "All of the following EXCEPT...").
+3. Compare all options against each other to identify the definitively correct choice.
+4. Output ONLY valid JSON in this exact format (start directly with "{" and no markdown ticks):
 
 {"answer": "<letter>) <answer text>"}
 
-Where <letter> is one of A, B, C, D, E and <answer text> is the complete text of the correct option. The JSON must be the entire response."""
+Where <letter> is one of A, B, C, D, E and <answer text> is the complete text of the winning option."""
 
 DEFAULT_CONFIG: dict[str, Any] = {
+    # Boot template used only when config.json is missing (load_config regenerates it). Must
+    # mirror the live chain; refreshed 2026-11-09 (v5.4, audited) — no secrets, key_env names
+    # only. Runtime state (fixed_ocr_region etc.) starts empty; system prompt refs PERSONA.
     "fixed_ocr_region": None,
     "scroll_region": None,
     "auto_scroll_region": None,
-    "hotkey_ocr": "ctrl+shift+z",
-    "hotkey_reselect": "ctrl+alt+z",
+    "hotkey_ocr": "menu",
+    "hotkey_reselect": "alt+q",
+    "hotkey_vision": "alt+i",
     "hotkey_scroll": "alt+shift+z",
     "hotkey_set_scroll": "alt+shift+x",
     "hotkey_auto_scroll": "alt+shift+a",
     "hotkey_set_auto_scroll": "alt+shift+s",
-    "hotkey_clip": "win+shift+c",
-    "hotkey_clear": "win+shift+v",
-    "hotkey_reshow": "win+shift+x",
+    "hotkey_clip": "alt+c",
+    "hotkey_clear": "alt+v",
+    "hotkey_reshow": "alt+x",
     "overlay_timeout_sec": 60,
     "overlay_font_size": 18,
     "max_overlay_width_px": 620,
@@ -151,62 +157,44 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "temperature": 0.2,
     "endpoints": [
         {
-            "name": "gemini-flash-lite",
-            "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-            "model": "gemini-3.1-flash-lite",
+            "name": "opencodego-haiku5.5",
+            "url": "https://opencode.ai/inference/go/openai/v1/chat/completions",
+            "model": "claude-haiku-5-5",
             "key_env": [
-                "GEMINI_API_KEY",
-                "GEMINI_FLASH_KEY_2"
+                "OPENCODEGOTAGRADER"
             ],
-            "timeout_sec": 3.5,
-            "total_timeout_sec": 5.0,
+            "timeout_sec": 3.2,
+            "total_timeout_sec": 4.0,
             "max_retries": 0,
-            "supports_response_format": True,
+            "supports_response_format": False,
             "supports_vision": True,
             "enabled": True,
             "max_tokens": 256
         },
         {
-            "name": "opencode-haiku",
-            "url": "https://opencode.ai/zen/go/v1/chat/completions",
-            "model": "claude-haiku-5-5",
+            "name": "openrouter-haiku5.5",
+            "url": "https://openrouter.ai/api/v1/chat/completions",
+            "model": "anthropic/claude-haiku-5.5",
             "key_env": [
-                "OPENCODEGOTAGRADER"
+                "OPENROUTERTAGRADER"
             ],
-            "timeout_sec": 3.5,
-            "total_timeout_sec": 4.5,
+            "timeout_sec": 3.2,
+            "total_timeout_sec": 4.0,
             "max_retries": 0,
             "supports_response_format": False,
-            "supports_vision": False,
+            "supports_vision": True,
             "enabled": True,
             "max_tokens": 256
         },
         {
             "name": "omniroute-haiku",
-            "url": "http://192.168.1.200:20128/v1/chat/completions",
-            "url_env": "OMNIROUTE_CHAT_URL",
+            "url": "http://100.122.158.123:20128/v1/chat/completions",
             "model": "no-think/github/claude-haiku-4.5",
             "key_env": [
                 "OMNIROUTE_API_KEY"
             ],
-            "timeout_sec": 3.0,
-            "total_timeout_sec": 3.5,
-            "max_retries": 0,
-            "supports_response_format": False,
-            "supports_vision": True,
-            "enabled": True,
-            "max_tokens": 256
-        },
-        {
-            "name": "omniroute-terra",
-            "url": "http://192.168.1.200:20128/v1/chat/completions",
-            "url_env": "OMNIROUTE_CHAT_URL",
-            "model": "no-think/github/gpt-5.6-terra",
-            "key_env": [
-                "OMNIROUTE_API_KEY"
-            ],
-            "timeout_sec": 3.5,
-            "total_timeout_sec": 4.0,
+            "timeout_sec": 2.8,
+            "total_timeout_sec": 3.6,
             "max_retries": 0,
             "supports_response_format": False,
             "supports_vision": True,
@@ -220,8 +208,122 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "key_env": [
                 "XAI_API_KEY"
             ],
-            "timeout_sec": 4.5,
-            "total_timeout_sec": 5.5,
+            "timeout_sec": 2.8,
+            "total_timeout_sec": 3.4,
+            "max_retries": 0,
+            "supports_response_format": True,
+            "supports_vision": True,
+            "enabled": True,
+            "max_tokens": 256
+        },
+        {
+            "name": "openrouter-direct",
+            "url": "https://openrouter.ai/api/v1/chat/completions",
+            "model": "google/gemma-4-26b-a4b-it:free",
+            "key_env": [
+                "OPENROUTERTAGRADER"
+            ],
+            "timeout_sec": 2.2,
+            "total_timeout_sec": 2.8,
+            "max_retries": 0,
+            "supports_response_format": False,
+            "supports_vision": False,
+            "enabled": True,
+            "max_tokens": 256
+        },
+        {
+            "name": "omniroute-gemma-free",
+            "url": "http://100.122.158.123:20128/v1/chat/completions",
+            "model": "openrouter/google/gemma-4-26b-a4b-it:free",
+            "key_env": [
+                "OMNIROUTE_API_KEY"
+            ],
+            "timeout_sec": 2.2,
+            "total_timeout_sec": 2.8,
+            "max_retries": 0,
+            "supports_response_format": False,
+            "supports_vision": False,
+            "enabled": True,
+            "max_tokens": 256
+        },
+        {
+            "name": "opencode-mimo-flash",
+            "url": "https://opencode.ai/inference/go/openai/v1/chat/completions",
+            "model": "mimo-v2.6-flash",
+            "key_env": [
+                "OPENCODEGOTAGRADER"
+            ],
+            "timeout_sec": 3.0,
+            "total_timeout_sec": 3.8,
+            "max_retries": 0,
+            "supports_response_format": True,
+            "supports_vision": True,
+            "enabled": True,
+            "max_tokens": 256
+        },
+        {
+            "name": "opencode-deepseek-flash",
+            "url": "https://opencode.ai/inference/go/openai/v1/chat/completions",
+            "model": "deepseek-v4.1-flash",
+            "key_env": [
+                "OPENCODEGOTAGRADER"
+            ],
+            "timeout_sec": 2.6,
+            "total_timeout_sec": 3.4,
+            "max_retries": 0,
+            "supports_response_format": False,
+            "supports_vision": True,
+            "enabled": True,
+            "max_tokens": 256,
+            "payload_overrides": {
+                "thinking": {
+                    "type": "disabled"
+                }
+            }
+        },
+        {
+            "name": "opencode-glm-flash",
+            "url": "https://opencode.ai/inference/go/openai/v1/chat/completions",
+            "model": "glm-5.3-flash",
+            "key_env": [
+                "OPENCODEGOTAGRADER"
+            ],
+            "timeout_sec": 2.6,
+            "total_timeout_sec": 3.4,
+            "max_retries": 0,
+            "supports_response_format": False,
+            "supports_vision": True,
+            "enabled": True,
+            "max_tokens": 256
+        },
+        {
+            "name": "opencode-free",
+            "url": "https://opencode.ai/zen/v1/chat/completions",
+            "model": "deepseek-v4.1-flash-free",
+            "key_env": [],
+            "no_auth": True,
+            "headers": {
+                "User-Agent": "opencode/2.2.5",
+                "x-opencode-client": "opencode"
+            },
+            "timeout_sec": 2.2,
+            "total_timeout_sec": 2.8,
+            "max_retries": 0,
+            "supports_response_format": False,
+            "supports_vision": False,
+            "enabled": True,
+            "max_tokens": 256
+        },
+        {
+            "name": "gemini-2.5-flash",
+            "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+            "model": "gemini-2.5-flash",
+            "key_env": [
+                "GEMINI_API_KEY",
+                "GEMINI_FLASH_KEY_2"
+            ],
+            "timeout_sec": 3.2,
+            "total_timeout_sec": 3.8,
             "max_retries": 0,
             "supports_response_format": True,
             "supports_vision": True,
@@ -230,8 +332,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
         }
     ],
     "endpoint_cooldown_sec": 15,
+    "auth_fail_cooldown_sec": 1800,
     "vision_enabled": False,
-    "hotkey_vision": "alt+i",
 }
 
 
@@ -1109,7 +1211,7 @@ class LLMClient:
             "User-Agent": "TA-Grader/1.0",
         }
         if "openrouter.ai" in url.lower():
-            base_headers["HTTP-Referer"] = "https://github.com/justinryan/ta-grader"
+            base_headers["HTTP-Referer"] = "https://github.com/wowthisiseasytoremember-stack/ta-grader-final"
             base_headers["X-Title"] = "TA Grader"
         if "opencode.ai" in url.lower():
             # OpenCode's routing contract (2026-11): a stable session id per
@@ -1597,6 +1699,9 @@ class App:
         self._warn_admin()
 
         self.cfg = load_config()
+        # Hotkey vision toggles are session-only; the value on disk at boot is
+        # what every config save must keep, so alt+i can never leak to disk.
+        self._disk_vision = bool(self.cfg.get("vision_enabled", False))
         try:
             verify_all_keys(self.cfg)
         except RuntimeError as e:
@@ -1750,8 +1855,26 @@ class App:
         x, y, w, h = self.fixed_region
         self._process_region(x, y, w, h)
 
+    def _save_disk_config(self) -> None:
+        """Write config.json preserving the boot-time vision policy.
+
+        The alt+i toggle mutates self.cfg["vision_enabled"] in memory for the
+        session; writes to disk must keep the value the file had at boot so
+        region saves can never wake up with vision enabled (the v5.3 contract).
+        """
+        disk = dict(self.cfg)
+        disk["vision_enabled"] = self._disk_vision
+        CONFIG_PATH.write_text(
+            json.dumps(config_for_disk(disk), indent=2),
+            encoding="utf-8",
+        )
+
     def _do_toggle_vision(self) -> None:
-        """Vision is opt-in: flip the in-session flag, announce, never persist to disk."""
+        """Vision is opt-in: flip the in-session flag and announce it.
+
+        Disk keeps the boot-time value via `_save_disk_config` — the hotkey
+        toggle never becomes the persisted default.
+        """
         on = not bool(self.cfg.get("vision_enabled", False))
         self.cfg["vision_enabled"] = on
         hk = self.cfg.get("hotkey_vision", "alt+i")
@@ -1775,10 +1898,7 @@ class App:
         self.fixed_region = box
         try:
             self.cfg["fixed_ocr_region"] = list(box)
-            CONFIG_PATH.write_text(
-                json.dumps(config_for_disk(self.cfg), indent=2),
-                encoding="utf-8",
-            )
+            self._save_disk_config()
             log(f"Saved fixed OCR region {box} to config.json")
         except Exception as e:
             log(f"Failed to save fixed OCR region to config.json: {e}")
@@ -1795,10 +1915,7 @@ class App:
         self.scroll_region = box
         try:
             self.cfg["scroll_region"] = list(box)
-            CONFIG_PATH.write_text(
-                json.dumps(config_for_disk(self.cfg), indent=2),
-                encoding="utf-8",
-            )
+            self._save_disk_config()
             log(f"Saved scroll region {box} to config.json")
             self.overlays.show(
                 f"Scroll region set: {box}\n\n"
@@ -1881,10 +1998,7 @@ class App:
         self.auto_scroll_region = region
         try:
             self.cfg["auto_scroll_region"] = list(region)
-            CONFIG_PATH.write_text(
-                json.dumps(config_for_disk(self.cfg), indent=2),
-                encoding="utf-8",
-            )
+            self._save_disk_config()
             log(f"Saved auto-scroll X bounds: left={x}, right={x+w}")
             self.overlays.show(
                 f"Auto-scroll X bounds set: left={x}, right={x+w}\n\n"

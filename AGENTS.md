@@ -5,7 +5,7 @@ initiative: career
 family: education-tooling
 what: >-
   Floating Windows answer-key overlay: captures a fixed region, manual scroll region,
-  auto-scroll region, or clipboard, then answers through an 8-rank sub-2-second
+  auto-scroll region, or clipboard, then answers through an 11-rank sub-2-second
   multi-provider LLM chain with per-key quota cooldown memory and an answer-letter
   remap guard.
 goal: >-
@@ -18,13 +18,13 @@ entrypoints:
   - TA_Grader.py
   - config.json
   - Run_TA_Grader.bat
-updated: '2026-11-09 08:41 UTC'
+updated: '2026-11-10 00:31 UTC'
 ---
 
 # AGENTS.md — TA Grader
 
 ## What this is
-Floating Windows answer-key overlay. It captures a fixed region, manual multi-segment scroll region, automatic Page-Down scroll region, or clipboard text; routes the question through a 5-rank verified LLM chain; and displays the parsed answer in a floating overlay.
+Floating Windows answer-key overlay. It captures a fixed region, manual multi-segment scroll region, automatic Page-Down scroll region, or clipboard text; routes the question through an 11-rank verified LLM chain; and displays the parsed answer in a floating overlay.
 
 ## Capture and routing policy
 All screen capture modes use the same adaptive policy:
@@ -59,6 +59,7 @@ All screen capture modes use the same adaptive policy:
 
 ## Quota & Cooldown Mechanics
 - **Per-Key Quota Cooldown (`_key_cooldown`):** When a key returns `HTTP 429`, that specific key is cooled for `60s` and the next key is tried immediately with a fresh timeout budget. Bearer-less ranks feed sentinel `NO_AUTH_KEY` so the same bookkeeping applies.
+- **Auth-fail cooldowns, two levels:** a per-*key* `HTTP 401/403` cools that key for a hardcoded `3600s` before rotating to the next key (429 stays `60s` per key); when every key on an endpoint auth-fails, the whole endpoint parks for `auth_fail_cooldown_sec` (`1800s`, config-driven) instead of being retried every question.
 - **Per-Endpoint Cooldown (`_cooldown`):** all keys failed → endpoint cools `15s`; `HTTP 429` → `60s`; **`HTTP 401/403` → `auth_fail_cooldown_sec` (1800s)** so dead credentials stop taxing every question.
 - **Key-aware stalest retry:** when every endpoint is cooling, ranks whose keys are live are preferred over ranks parked with dead credentials.
 - **OpenCode routing contract (2026-11):** requests to `opencode.ai` carry a stable per-run `ses_<64-hex>` `x-opencode-session` and `x-opencode-client: opencode`.
@@ -66,7 +67,7 @@ All screen capture modes use the same adaptive policy:
 - **OmniRoute ranks:** router `omniroute-ichabod` container on ichabod must be up (`docker start omniroute-ichabod`; port 20128).
 - **Keepalive & TTFT Enforcement:** Synthetic `chatcmpl-keepalive` SSE frames are ignored, and streams must emit a real content token within `timeout_sec` (2.0s–3.2s).
 - **Windows Proxy Bypass:** `session.trust_env = False` prevents Windows WPAD proxy discovery stalls.
-- **Logs:** Written directly to `C:\Users\wowth\Desktop\TA-Grader\ta_grader.log` (with fallback to `%TEMP%\ta_grader.log`).
+- **Logs:** Written directly to `C:\Users\wowth\Desktop\TA-Grader\ta_grader.log` (with fallback to `%TEMP%\ta_grader.log`). Log timestamps are **local wall-clock time, not UTC** (deliberate exception to the workspace UTC rule — matches what the user sees on screen; convert before comparing log lines to commit/doc stamps).
 
 ## Hotkeys
 - `menu` / `apps` — fixed region
