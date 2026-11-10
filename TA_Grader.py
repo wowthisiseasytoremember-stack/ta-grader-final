@@ -327,7 +327,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "max_retries": 0,
             "supports_response_format": True,
             "supports_vision": True,
-            "enabled": True,
+            "enabled": False,
             "max_tokens": 256
         }
     ],

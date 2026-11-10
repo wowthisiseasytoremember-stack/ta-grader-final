@@ -16,7 +16,7 @@ Provider diversity is deliberate: quota exhaustion or an outage takes down every
 8. `opencode-deepseek-flash` (`deepseek-v4.1-flash` via OpenCode Go, `thinking: disabled`)
 9. `opencode-glm-flash` (`glm-5.3-flash` via OpenCode Go)
 10. `opencode-free` (anonymous overflow, `deepseek-v4.1-flash-free` via `opencode.ai/zen/v1` — bearer-less by design)
-11. `gemini-2.5-flash` (Google AI Studio, 2 rotating keys) — last resort; currently 404 on Google's openai-compat path (see CHANGELOG/TODO)
+11. `gemini-2.5-flash` (Google AI Studio, 2 rotating keys) — **disabled 2026-11-10** (404 on Google's openai-compat path); re-enable after probing (see CHANGELOG/TODO)
 
 Vision is opt-in: OFF on boot, `alt+i` toggles it for the session only (see CHANGELOG v5.3).
 

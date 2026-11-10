@@ -203,7 +203,7 @@
       "max_retries": 0,
       "supports_response_format": true,
       "supports_vision": true,
-      "enabled": true,
+      "enabled": false,
       "max_tokens": 256
     }
   ],

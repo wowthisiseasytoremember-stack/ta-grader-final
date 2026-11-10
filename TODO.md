@@ -2,7 +2,7 @@
 
 ## Active Execution Tasks
 - [ ] **Restart the app** to load the v5.4 audit-fix build (opt-in vision still OFF on boot; `alt+i` toggles the session; region saves no longer leak the toggle to disk). Config only re-reads on boot.
-- [ ] **gemini-2.5-flash rank 404s now** (was 503 high-demand before): check Google's openai-compat base URL / model id drift; it's last rank so cosmetic.
+- [x] **gemini-2.5-flash disabled (2026-11-10)** by user call: it 404s every call (Google openai-compat URL/model drift) and only burns the 3.8s wall when the chain reaches it. Entry kept in config with `"enabled": false`; re-enable after probing the current Google model path.
 - [ ] **NVIDIA NIM rank**: `TAGRADER` key is vaulted (Doppler + `.env`) but unwired — probe `integrate.api.nvidia.com` (e.g. nemotron-3.5-lightning / llama-3.3 / qwen-flash) for a sub-2s grader model, then add as a rank behind gemma.
 - [x] **OpenCode Go key solved (2026-11-09)**: the expired fleet-wide keys were bypassed — Birkinbagh account key (`oc_sk_…`, 51 chars) vaulted as `OPENCODEGO_BIRKINBAGH` and swapped into `OPENCODEGOTAGRADER` (Doppler + `.env`); mimo Go probe returned 200 with correct answer. Prior finding corrected: `OPENCODEGOTAGRADER` never existed in Doppler — the stale `.env` was the sole key source until now.
 - [ ] **OmniRoute Copilot token refresh:** `no-think/github/claude-haiku-5.5` and `sonnet-5.5` 502 "empty upstream" (stale OAuth suspected). Refresh in OmniRoute settings (`:20128` on ichabod). Until then haiku-4.5 covers the route.

@@ -18,7 +18,7 @@ entrypoints:
   - TA_Grader.py
   - config.json
   - Run_TA_Grader.bat
-updated: '2026-11-10 00:31 UTC'
+updated: '2026-11-10 00:34 UTC'
 ---
 
 # AGENTS.md — TA Grader
@@ -46,7 +46,7 @@ All screen capture modes use the same adaptive policy:
 8. `opencode-deepseek-flash` (`deepseek-v4.1-flash` via OpenCode Go, `thinking: disabled`) — ~1.06s warm p50. Same live key.
 9. `opencode-glm-flash` (`glm-5.3-flash` via OpenCode Go) — ~1.20s warm p50. Same live key.
 10. `opencode-free` (overflow; `deepseek-v4.1-flash-free` via `opencode.ai/zen/v1`) — bearer-less (`no_auth: true`), UA `opencode/2.2.5` + `x-opencode-client: opencode`; per-IP capped (429 `FreeUsageLimitError` when dry).
-11. `gemini-2.5-flash` (Google AI Studio Direct) — demoted last: 0/30 across the 2026-11-08 log (high-demand 503s + timeouts); 3.2s/3.8s budgets; 2 rotation keys.
+11. `gemini-2.5-flash` (Google AI Studio Direct) - demoted last: 0/30 across the 2026-11-08 log (high-demand 503s + timeouts); 3.2s/3.8s budgets; 2 rotation keys; **disabled 2026-11-10** (404s every call - re-enable after probing Google's openai-compat path).
 - **Go catalog spares (not wired):** `claude-haiku-5-5` is joined on Go by `gemini-4-argon`, `grok-4.7`, `kimi-k3`, `kimi-k3.1-pro`, `qwen3.8-flash`, `minimax-m3.1-flash`, `deepseek-v4-pro`, `-pro` variants, `hy3/hy4`, `mimo-v2.6-pro`, free tiers (`beam-free`, `crouton-alpha-free`, `iceman-contributor-free`) — 30 models total behind the same key.
 
 ### Storable-but-unwired

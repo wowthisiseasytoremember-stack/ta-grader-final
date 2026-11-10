@@ -8,6 +8,7 @@
 - **Referer fixed:** `HTTP-Referer` pointed at a non-existent repo (`justinryan/ta-grader`) → `wowthisiseasytoremember-stack/ta-grader-final`.
 - **M6 fixed:** changelog stamps reconciled to commit times (v5 00:45, v5.1 08:22, v5.2 08:43, hotfix 10:21, v5.3 23:38 UTC; v5.3 was nested under a stale header).
 - Contract suite 22 tests (adds `_save_disk_config` exists / no direct `CONFIG_PATH.write_text(json.dumps(config_for_disk(self.cfg)))` in source / boot-time capture / DEFAULT_CONFIG-vs-live-chain / PERSONA-equals-live-prompt); all four suites green locally + on ichabod.
+- **Same hour, user call:** `gemini-2.5-flash` (rank 11) disabled — `"enabled": false` in config/template/DEFAULT_CONFIG. It 404s every call (Google openai-compat drift), so it only burned 3.8s whenever the chain reached it. Entry kept for an easy re-enable after a model-path probe.
 
 ## 2026-11-09 23:38 UTC — v5.3: vision killed to opt-in
 - User call after the 02:17:32 all-rank vision timeout: **vision-first is now opt-in and OFF by default**. `hotkey alt+i` toggles `vision_enabled` in-memory for the session (green/amber overlay announces state; never persists — every boot starts text-first).
