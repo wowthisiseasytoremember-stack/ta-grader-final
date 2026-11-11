@@ -36,8 +36,8 @@ All screen capture modes use the same adaptive policy:
 5. Weak OCR promotes vision-capable endpoints first and omits the suspect OCR transcript so it cannot bias the visual read.
 
 ## Endpoint priority (Verified 11-Rank Chain, 2026-11-09)
-1. **`opencodego-haiku5.5`** (`claude-haiku-5-5` via OpenCode Go `inference/go`, key `OPENCODEGOTAGRADER` = Birkinbagh account) — **rank 1 by user call**: ~0.95s warm, correct on 3 probes. Spell the id with hyphens (`claude-haiku-5-5`); dots → 400 unavailable.
-2. **`openrouter-haiku5.5`** (`anthropic/claude-haiku-5.5` via `openrouter.ai/api/v1`, key `OPENROUTERTAGRADER`) — same model, second route (user's own account, paid).
+1. **`opencodego-haiku5.5`** (`claude-haiku-5-5` via OpenCode Go `inference/go`, key `OPENCODEGOTAGRADER` = Birkinbagh account) — **rank 1 by user call**: ~0.95s warm, correct on 3 probes. Spell the id with hyphens (`claude-haiku-5-5`); dots → 400 unavailable. **Carries `payload_overrides.reasoning_effort: "none"` (v5.5, 2026-11-11)** — hidden reasoning tokens count against `max_tokens` and made 15/15 streams come back empty (`finish_reason: length`, zero content); `thinking: {type: disabled}` is rejected 400 by the Go proxy, `reasoning_effort` is the accepted knob. TTFT p50 1.61s with it on.
+2. **`openrouter-haiku5.5`** (`anthropic/claude-haiku-5.5` via `openrouter.ai/api/v1`, key `OPENROUTERTAGRADER`) — same model, second route (user's own account, paid). **Same `reasoning_effort: "none"` override (v5.5)** — it fails identically without it (TTFT p50 1.69s with it on).
 3. `omniroute-haiku` (`no-think/github/claude-haiku-4.5` via OmniRoute Tailscale `100.122.158.123:20128`) — free Copilot insurance; ~1.4s warm near-zero burn.
 4. `xai-grok-fast` (`grok-4.20-0309-non-reasoning` via xAI Direct) — ~0.85s warm p50, proven workhorse (64/71 in the 2026-11-08 session).
 5. `openrouter-direct` (`google/gemma-4-26b-a4b-it:free` via `openrouter.ai/api/v1`, key `OPENROUTERTAGRADER`) — 200 @ ~1.5s, $0; text-only.

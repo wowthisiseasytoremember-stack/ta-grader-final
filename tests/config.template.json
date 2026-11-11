@@ -45,7 +45,10 @@
       "supports_response_format": false,
       "supports_vision": true,
       "enabled": true,
-      "max_tokens": 256
+      "max_tokens": 256,
+      "payload_overrides": {
+        "reasoning_effort": "none"
+      }
     },
     {
       "name": "openrouter-haiku5.5",
@@ -60,7 +63,10 @@
       "supports_response_format": false,
       "supports_vision": true,
       "enabled": true,
-      "max_tokens": 256
+      "max_tokens": 256,
+      "payload_overrides": {
+        "reasoning_effort": "none"
+      }
     },
     {
       "name": "omniroute-haiku",

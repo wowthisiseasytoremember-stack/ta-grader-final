@@ -169,7 +169,10 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "supports_response_format": False,
             "supports_vision": True,
             "enabled": True,
-            "max_tokens": 256
+            "max_tokens": 256,
+            "payload_overrides": {
+                "reasoning_effort": "none"
+            }
         },
         {
             "name": "openrouter-haiku5.5",
@@ -184,7 +187,10 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "supports_response_format": False,
             "supports_vision": True,
             "enabled": True,
-            "max_tokens": 256
+            "max_tokens": 256,
+            "payload_overrides": {
+                "reasoning_effort": "none"
+            }
         },
         {
             "name": "omniroute-haiku",
